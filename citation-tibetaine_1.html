@@ -326,7 +326,7 @@ body.capture #ui{display:none}
 </div>
 
 <div id="ui">
-	<button id="play" type="button">Rejouer</button>
+	<button id="play" type="button" aria-label="Lecture / pause">▶</button>
 	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
 	     aria-valuemin="0" aria-valuemax="14.8" aria-valuenow="0"><div id="barfill"></div></div>
 	<div id="tt">0.0 / 14.8</div>
@@ -497,9 +497,10 @@ body.capture #ui{display:none}
 	var playBtn = document.getElementById("play");
 	var bar = document.getElementById("bar");
 	var tt = document.getElementById("tt");
-	var t0 = null, raf = null, scrub = null;
+	var t0 = null, raf = null;
 	var barTotal = T.end - 0.55;
 	var cursor = 0;
+	var playing = false;
 
 	var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -507,43 +508,46 @@ body.capture #ui{display:none}
 		barfill.style.width = (100 * t / barTotal) + "%";
 		tt.textContent = t.toFixed(1) + " / " + barTotal.toFixed(1);
 		bar.setAttribute("aria-valuenow", t.toFixed(1));
+		playBtn.textContent = playing ? "❚❚" : "▶";
 	}
 
 	function frame(now){
-		if (t0 === null) t0 = now;
 		var t = (now - t0) / 1000;
-		if (t >= barTotal){
-			t = barTotal;
-			seek(t);
-			cursor = t;
-			updateBar(t);
-			playBtn.classList.add("on");
-			raf = null;
-			return;
+		if (t > barTotal + 0.5){
+			t = 0;
+			t0 = now;
 		}
-		seek(t);
-		cursor = t;
-		updateBar(t);
+		cursor = Math.min(t, barTotal);
+		seek(cursor);
+		updateBar(cursor);
 		raf = requestAnimationFrame(frame);
 	}
 
 	function play(){
+		playing = true;
+		t0 = performance.now() - cursor * 1000;
 		if (raf) cancelAnimationFrame(raf);
-		playBtn.classList.remove("on");
-		t0 = null;
-		scrub = null;
 		raf = requestAnimationFrame(frame);
+		updateBar(cursor);
 	}
 
-	playBtn.addEventListener("click", play);
+	function pause(){
+		playing = false;
+		if (raf) { cancelAnimationFrame(raf); raf = null; }
+		updateBar(cursor);
+	}
+
+	playBtn.addEventListener("click", function(){
+		if (playing) pause(); else play();
+	});
 
 	function seekTo(t){
-		if (raf) { cancelAnimationFrame(raf); raf = null; }
 		t = Math.max(0, Math.min(barTotal, t));
 		cursor = t;
+		playing = false;
+		if (raf) { cancelAnimationFrame(raf); raf = null; }
 		seek(t);
 		updateBar(t);
-		playBtn.classList.add("on");
 	}
 
 	bar.addEventListener("click", function(e){
@@ -556,16 +560,16 @@ body.capture #ui{display:none}
 		else if (e.key === "ArrowLeft"){ seekTo(cursor - 1); e.preventDefault(); }
 		else if (e.key === "Home"){ seekTo(0); e.preventDefault(); }
 		else if (e.key === "End"){ seekTo(barTotal); e.preventDefault(); }
-		else if (e.key === " " || e.key === "Enter"){ play(); e.preventDefault(); }
+		else if (e.key === " " || e.key === "Enter"){ if (playing) pause(); else play(); e.preventDefault(); }
 	});
 
 	if (document.fonts && document.fonts.ready){
 		document.fonts.ready.then(function(){
-			if (reduce){ seek(T.end - 0.6); cursor = barTotal; updateBar(barTotal); playBtn.classList.add("on"); }
+			if (reduce){ cursor = 0; seek(0); updateBar(0); }
 			else play();
 		});
 	} else {
-		if (reduce){ seek(T.end - 0.6); playBtn.classList.add("on"); } else play();
+		if (reduce){ cursor = 0; seek(0); updateBar(0); } else play();
 	}
 })();
 </script>

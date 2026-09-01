@@ -147,7 +147,7 @@ html,body{margin:0;padding:0;background:#0d0a07;overflow:hidden}
 </div></div>
 
 <div id="ui">
-	<button id="play">Rejouer</button>
+	<button id="play" type="button" aria-label="Lecture / pause">▶</button>
 	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
 	     aria-valuemin="0" aria-valuemax="32.8" aria-valuenow="0"><div id="barfill"></div></div>
 	<div id="tt">0.0 / 32.8</div>
@@ -506,6 +506,7 @@ function render(t){
 	const bt = t>DUR?DUR:t;
 	document.getElementById('barfill').style.width = (100*bt/DUR).toFixed(2)+'%';
 	document.getElementById('tt').textContent = bt.toFixed(1)+' / '+DUR.toFixed(1);
+	document.getElementById('bar').setAttribute('aria-valuenow', bt.toFixed(1));
 }
 
 /* ---------------- mise à l’échelle + lecture ---------------- */
@@ -516,44 +517,48 @@ function fit(){
 }
 addEventListener('resize',fit); fit();
 
-let t0=null, raf=null;
-function loop(ts){
-	if(t0===null) t0=ts;
-	let t=(ts-t0)/1000;
-	if(t>T.end+1.1){ t0=ts; t=0; }
+/* ---------- lecture / pause ---------- */
+const cl01 = x => x<0?0:(x>1?1:x);
+const playBtn = document.getElementById('play');
+const barEl = document.getElementById('bar');
+let t = 0, playing = !window.__STILL__, last = null, raf = null;
+
+function paint(){
 	render(t);
-	raf=requestAnimationFrame(loop);
+	playBtn.textContent = playing ? '❚❚' : '▶';
 }
-function play(){
-	if(raf) cancelAnimationFrame(raf);
-	t0=null;
-	raf=requestAnimationFrame(loop);
+function loop(ts){
+	if(last===null) last=ts;
+	if(playing){
+		t += (ts-last)/1000;
+		if(t > T.end+1.1) t = 0;   // boucle : reprend à 0 sans s’arrêter
+		paint();
+	}
+	last = ts;
+	raf = requestAnimationFrame(loop);
 }
-if(!window.__STILL__){ raf=requestAnimationFrame(loop); }
-addEventListener('click',e=>{ if(e.target.closest('#ui')) return; play(); });
+playBtn.addEventListener('click', ()=>{ playing=!playing; paint(); });
 
 /* ---------- barre de progression : accroche ---------- */
-const cl01 = x => x<0?0:(x>1?1:x);
-let cursor = 0;
-const barEl = document.getElementById('bar');
-document.getElementById('play').addEventListener('click',play);
-function seekTo(t){
-	if(raf) cancelAnimationFrame(raf); raf=null;
-	cursor = cl01(t/DUR)*DUR;
-	render(cursor);
-	barEl.setAttribute('aria-valuenow', cursor.toFixed(1));
+function seekTo(v){
+	t = cl01(v/DUR)*DUR;
+	playing = false;
+	paint();
 }
 barEl.addEventListener('click',e=>{
 	const r=e.currentTarget.getBoundingClientRect();
 	seekTo(cl01((e.clientX-r.left)/r.width)*DUR);
 });
 barEl.addEventListener('keydown',e=>{
-	if(e.key==='ArrowRight'){ seekTo(cursor+1); e.preventDefault(); }
-	else if(e.key==='ArrowLeft'){ seekTo(cursor-1); e.preventDefault(); }
+	if(e.key==='ArrowRight'){ seekTo(t+1); e.preventDefault(); }
+	else if(e.key==='ArrowLeft'){ seekTo(t-1); e.preventDefault(); }
 	else if(e.key==='Home'){ seekTo(0); e.preventDefault(); }
 	else if(e.key==='End'){ seekTo(DUR); e.preventDefault(); }
-	else if(e.key===' '||e.key==='Enter'){ play(); e.preventDefault(); }
+	else if(e.key===' '||e.key==='Enter'){ playing=!playing; paint(); e.preventDefault(); }
 });
+
+paint();
+if(!window.__STILL__){ raf=requestAnimationFrame(loop); }
 
 window.render=render;
 </script>

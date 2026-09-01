@@ -238,7 +238,7 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
 </div></div>
 
 <div id="ui">
-	<button id="play">Rejouer</button>
+	<button id="play" type="button" aria-label="Lecture / pause">▶</button>
 	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
 	     aria-valuemin="0" aria-valuemax="21.9" aria-valuenow="0"><div id="barfill"></div></div>
 	<div id="tt">0.0 / 21.9</div>
@@ -322,21 +322,37 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
 
   window.__render=render; window.__DUR=DUR;
   var t0=null, raf=null;
-  function loop(ts){ if(t0===null)t0=ts; var t=(ts-t0)/1000;
-    if(t>DUR+0.7){t0=ts;t=0;} render(t); raf=requestAnimationFrame(loop);}
-  function play(){
-    t0=null;
-    render(0);
-    if(!raf) raf=requestAnimationFrame(loop);
+  var playEl=document.getElementById('play');
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var playing=!reduce;
+  function paintPlay(){ playEl.textContent=playing?'❚❚':'▶'; }
+  function loop(ts){
+    if(t0===null)t0=ts;
+    if(playing){
+      var t=(ts-t0)/1000;
+      if(t>DUR+0.7){t0=ts;t=0;}
+      render(t);
+    }
+    raf=requestAnimationFrame(loop);
+  }
+  function togglePlay(){
+    if(playing){
+      playing=false;
+    }else{
+      t0=performance.now()-curT*1000;
+      playing=true;
+    }
+    paintPlay();
   }
   function cl01(x){return x<0?0:(x>1?1:x);}
   function seekTo(t){
     t=cl01(t/DUR)*DUR;
     t0=performance.now()-t*1000;
+    playing=false;
     render(t);
-    if(!raf) raf=requestAnimationFrame(loop);
+    paintPlay();
   }
-  document.getElementById('play').addEventListener('click', play);
+  playEl.addEventListener('click', togglePlay);
   barEl.addEventListener('click', function(e){
     var r=e.currentTarget.getBoundingClientRect();
     seekTo(cl01((e.clientX-r.left)/r.width)*DUR);
@@ -346,10 +362,11 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
     else if(e.key==='ArrowLeft'){ seekTo(curT-1); e.preventDefault(); }
     else if(e.key==='Home'){ seekTo(0); e.preventDefault(); }
     else if(e.key==='End'){ seekTo(DUR); e.preventDefault(); }
-    else if(e.key===' '||e.key==='Enter'){ play(); e.preventDefault(); }
+    else if(e.key===' '||e.key==='Enter'){ togglePlay(); e.preventDefault(); }
   });
 
   render(0);
+  paintPlay();
   if(!window.__STATIC) raf=requestAnimationFrame(loop);
 })();
 </script>
