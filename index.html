@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Index des animations pédagogiques de citations tibétaines — grammaire, mot à mot et traduction, syllabe par syllabe.">
+<title>Recueil animé</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tibetan:wght@400;600&family=EB+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #2c2013;
+    --ink-soft: #5a4a34;
+    --parchment: #f2e6c9;
+    --parchment-edge: #e3d3a6;
+    --cinabre: #9c3b2e;
+    --cinabre-soft: #b6544430;
+    --or: #a9791f;
+    --night: #efe6d2;
+    --night-card: #f2e6c9;
+    --rule: #c9b789;
+    --flag-blue: #4f6f8f;
+    --flag-green: #5c7f4f;
+    --flag-yellow: #c99a2e;
+    --focus: #9c3b2e;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #ece0c4;
+      --ink-soft: #c9b998;
+      --parchment: #241c14;
+      --parchment-edge: #3a2e1e;
+      --cinabre: #d97a63;
+      --cinabre-soft: #d97a6330;
+      --or: #d4ac4f;
+      --night: #16110b;
+      --night-card: #241c14;
+      --rule: #4a3c28;
+      --flag-blue: #7fa3c4;
+      --flag-green: #8ab077;
+      --flag-yellow: #dcb84f;
+      --focus: #d97a63;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #ece0c4;
+    --ink-soft: #c9b998;
+    --parchment: #241c14;
+    --parchment-edge: #3a2e1e;
+    --cinabre: #d97a63;
+    --cinabre-soft: #d97a6330;
+    --or: #d4ac4f;
+    --night: #16110b;
+    --night-card: #241c14;
+    --rule: #4a3c28;
+    --flag-blue: #7fa3c4;
+    --flag-green: #8ab077;
+    --flag-yellow: #dcb84f;
+    --focus: #d97a63;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--ink);
+    font-family: "EB Garamond", "Iowan Old Style", Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .tib {
+    font-family: "Noto Serif Tibetan", "Jomolhari", serif;
+  }
+
+  a { color: inherit; }
+
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 5rem 1.5rem 6rem;
+  }
+
+  header.masthead {
+    text-align: center;
+    margin-bottom: 4rem;
+  }
+
+  .flags {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 2.2rem;
+  }
+  .flags span {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 1px;
+    transform: rotate(45deg);
+    opacity: 0.75;
+  }
+  .flags span:nth-child(1) { background: var(--flag-blue); }
+  .flags span:nth-child(2) { background: var(--ink-soft); }
+  .flags span:nth-child(3) { background: var(--cinabre); }
+  .flags span:nth-child(4) { background: var(--flag-green); }
+  .flags span:nth-child(5) { background: var(--flag-yellow); }
+
+  .seal {
+    font-size: 1.4rem;
+    color: var(--or);
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-family: "EB Garamond", Georgia, serif;
+    font-weight: 600;
+    font-style: italic;
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+    letter-spacing: 0.01em;
+  }
+
+  .kicker {
+    font-family: "Inter", sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--cinabre);
+    margin: 0 0 1.1rem;
+  }
+
+  .lede {
+    font-size: 1.08rem;
+    color: var(--ink-soft);
+    max-width: 46ch;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .index {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .card {
+    position: relative;
+    display: block;
+    text-decoration: none;
+    background: var(--night-card);
+    border: 1px solid var(--parchment-edge);
+    border-radius: 3px;
+    padding: 1.7rem 1.9rem 1.6rem 1.9rem;
+    box-shadow: 0 1px 0 var(--rule);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    left: 0.55rem;
+    top: 0.65rem;
+    bottom: 0.65rem;
+    width: 2px;
+    background: var(--cinabre-soft);
+  }
+  .card:hover, .card:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--cinabre);
+    box-shadow: 0 6px 18px -10px var(--cinabre-soft), 0 1px 0 var(--rule);
+  }
+  .card:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .ep {
+    font-family: "Inter", sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--or);
+    white-space: nowrap;
+  }
+
+  .meta {
+    font-family: "Inter", sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tib-line {
+    font-size: 1.5rem;
+    line-height: 1.5;
+    margin: 0 0 0.5rem;
+  }
+
+  .gloss {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 1rem;
+    margin: 0 0 0.85rem;
+    max-width: 62ch;
+    line-height: 1.5;
+  }
+
+  .points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .points span {
+    font-family: "Inter", sans-serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    color: var(--cinabre);
+    border: 1px solid var(--cinabre-soft);
+    border-radius: 20px;
+    padding: 0.22rem 0.65rem;
+  }
+
+  footer {
+    margin-top: 3.5rem;
+    text-align: center;
+    font-family: "Inter", sans-serif;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.03em;
+  }
+
+  footer .seal {
+    margin-bottom: 0.6rem;
+  }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 3.2rem 1.1rem 4rem; }
+    .card { padding: 1.4rem 1.3rem; }
+    .tib-line { font-size: 1.28rem; }
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="flags" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <span class="seal tib" aria-hidden="true">༄༅།</span>
+    <p class="kicker">Recueil de citations tibétaines</p>
+    <h1 class="tib">འགྲེལ་བཤད་ཀྱི་ཟློས་གར།</h1>
+    <p class="lede">Huit citations, huit courts films. Chacune met en scène le tibétain classique
+      syllabe par syllabe — grammaire, mot à mot, traduction — et reprend, épisode après
+      épisode, les leçons des précédentes.</p>
+  </header>
+
+  <ol class="index" style="list-style:none; margin:0; padding:0;">
+
+    <li>
+      <a class="card" href="https://claude.ai/code/artifact/675c8a98-26da-4dbb-9308-8c2747b19138" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="ep">Épisode 1 · 27 août</span>
+          <span class="meta">0:15</span>
+        </div>
+        <p class="tib-line tib">བསམ་པ་དཀར་ན་སེམས་ཀྱི་སྨན་ཡིན།</p>
+        <p class="gloss">« Si la pensée est pure, elle est le remède de l'esprit. »</p>
+        <div class="points"><span>génitif ཀྱི་</span><span>conditionnel ན་</span><span>copule ཡིན་</span></div>
+      </a>
+    </li>
+
+    <li>
+      <a class="card" href="https://claude.ai/code/artifact/ea9b7df6-9ad5-4fcb-859d-71bd745d3c93" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="ep">Épisode 2 · 28 août</span>
+          <span class="meta">0:22</span>
+        </div>
+        <p class="tib-line tib">གལ་ཏེ་ཁྱེད་ཀྱིས་མིག་མ་ཕྱེ་ན།</p>
+        <p class="gloss">« Si tu n'ouvres pas les yeux, d'autres traceront ta route à ta place. »</p>
+        <div class="points"><span>ergatif ཀྱིས་</span><span>génitif ཀྱི་</span><span>corrélation གལ་ཏེ་ … ན་</span></div>
+      </a>
+    </li>
+
+    <li>
+      <a class="card" href="https://claude.ai/code/artifact/b8996da3-8119-458d-a8a9-01ec59ec243c" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="ep">Épisode 3 · 29 août</span>
+          <span class="meta">0:27</span>
+        </div>
+        <p class="tib-line tib">འཁོར་བ་པ་ལ་བདེ་བ་མེད། །མེ་ཡི་ནང་ན་བསིལ་བ་མེད།</p>
+        <p class="gloss">« Nul bonheur pour qui tourne dans le saṃsāra, nulle fraîcheur au cœur du feu. »</p>
+        <div class="points"><span>ལ་དོན་ ལ་/ན་</span><span>négation existentielle མེད་</span><span>ན་ locatif ≠ conditionnel</span></div>
+      </a>
+    </li>
+
+    <li>
+      <a class="card" href="https://claude.ai/code/artifact/781c7f3d-5670-49e7-8f37-97e673f9ed08" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="ep">Épisode 4 · 30 août</span>
+          <span class="meta">0:31</span>
+        </div>
+        <p class="tib-line tib">གངས་སྡོད་སེང་གེའི་གཡུ་རལ་ངོམ་པ་ལ།</p>
+        <p class="gloss">« Le lion des neiges déploie sa crinière de turquoise — inutile que la vermine s'en étonne. »</p>
+        <div class="points"><span>nominalisation</span><span>ergatif ↔ absolutif</span><span>génitif འི་</span></div>
+      </a>
+    </li>
+
+    <li>
+      <a class="card" href="https://claude.ai/code/artifact/a76b5e4a-0aef-43a5-be49-5bb47d864ee8" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="ep">Épisode 5 · 31 août</span>
+          <span class="meta">0:33</span>
+        </div>
+        <p class="tib-line tib">བཟང་པོ་ཤོར་ནས་ངན་པ་འཛིན།</p>
+        <p class="gloss">« Laisser fuir le bon, retenir le mauvais — l'homme vil est une passoire. »</p>
+        <div class="points"><span>gérondif ནས་</span><span>radicaux verbaux</span><span>deux tours du comparatif</span></div>
+      </a>
+    </li>
+
+    <li>
+      <a class="card" href="https://claude.ai/code/artifact/da84221f-d99f-4b57-b404-f37a8684bd71" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="ep">Épisode 6 · 31 août</span>
+          <span class="meta">0:33</span>
+        </div>
+        <p class="tib-line tib">སྡིག་པ་ཅི་ཡང་མི་བྱ་ཞིང་།</p>
+        <p class="gloss">« Ne faire aucun mal, accomplir pleinement le bien, dompter complètement son esprit. »</p>
+        <div class="points"><span>particule thématique ནི་</span><span>converb ཅིང་/ཞིང་/ཤིང་</span><span>terminative adverbiale</span></div>
+      </a>
+    </li>
+
+    <li>
+      <a class="card" href="https://claude.ai/code/artifact/cd9e82d1-0bbe-459a-b61f-98f7ddd5b44b" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="ep">Épisode 7 · 1 septembre</span>
+          <span class="meta">0:36</span>
+        </div>
+        <p class="tib-line tib">ལུས་ཅན་དག་གི་ལས་རྣམས་ནི།</p>
+        <p class="gloss">« Les actes des êtres incarnés ne se perdent pas, fût-ce en cent kalpas. »</p>
+        <div class="points"><span>ablatif ལས་</span><span>deux marques du pluriel</span><span>périphrase པར་འགྱུར་</span></div>
+      </a>
+    </li>
+
+    <li>
+      <a class="card" href="https://claude.ai/code/artifact/fb7434d9-8cf9-4041-b4fb-6c4b434be648" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="ep">Épisode 8 · 1 septembre</span>
+          <span class="meta">0:39</span>
+        </div>
+        <p class="tib-line tib">ཁྱི་ལ་ཁ་ཟས་བྱིན་པས་ཀྱང་།</p>
+        <p class="gloss">« Un peu de nourriture donnée au chien : il s'approche et vous tient pour un proche. »</p>
+        <div class="points"><span>concessive ཀྱང་</span><span>nominalisation + cas</span><span>loi des finales</span></div>
+      </a>
+    </li>
+
+  </ol>
+
+  <footer>
+    <span class="seal tib" aria-hidden="true">༧</span>
+    <p>Huit épisodes au 1ᵉʳ septembre 2026 — chacun reprend le gabarit du précédent.</p>
+  </footer>
+</div>
+</body>
+</html>
