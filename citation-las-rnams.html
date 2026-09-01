@@ -127,18 +127,17 @@ html,body{background:#0d0906;}
 
 #fade{position:absolute;inset:0;background:#0c0805;opacity:0;pointer-events:none}
 
-/* ---------- barre de lecture (page web) ---------- */
-#bar{display:flex;align-items:center;gap:16px;max-width:1100px;margin:14px auto 26px;
-  padding:0 20px;font-family:'Inter',system-ui,sans-serif;color:#a3936f;font-size:13px;}
-#bar button{appearance:none;border:1px solid rgba(201,162,39,.45);background:rgba(201,162,39,.10);
-  color:#e8d9b4;border-radius:999px;width:40px;height:40px;font-size:15px;cursor:pointer;
-  display:grid;place-items:center;transition:background .15s ease;}
-#bar button:hover{background:rgba(201,162,39,.22)}
-#bar button:focus-visible{outline:2px solid #c9a227;outline-offset:3px}
-#track{flex:1;height:26px;display:grid;align-items:center;cursor:pointer}
-#track .rail{height:4px;border-radius:3px;background:rgba(201,162,39,.20);position:relative}
-#track .fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:#c9a227}
-#bar .tm{font-variant-numeric:tabular-nums;min-width:96px;text-align:right;letter-spacing:.03em}
+/* ---------- contrôles ---------- */
+#ui{position:fixed;left:0;right:0;bottom:0;padding:14px 22px;display:flex;align-items:center;gap:16px;
+  background:linear-gradient(transparent,rgba(0,0,0,.72));z-index:10;font-family:'Inter',system-ui,sans-serif}
+#ui button{appearance:none;background:rgba(201,162,39,.16);color:#e8d9b4;border:1px solid rgba(201,162,39,.45);
+  border-radius:999px;width:40px;height:40px;font-size:15px;cursor:pointer;
+  display:grid;place-items:center;transition:background .15s ease}
+#ui button:hover{background:rgba(201,162,39,.3)}
+#ui button:focus-visible,#bar:focus-visible{outline:2px solid #e8d9b4;outline-offset:3px}
+#bar{flex:1;height:3px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden;cursor:pointer}
+#barfill{height:100%;width:0;background:var(--gold)}
+#tt{color:#a3936f;font-size:13px;font-variant-numeric:tabular-nums;min-width:96px;text-align:right;letter-spacing:.03em}
 </style>
 
 <div id="stage">
@@ -172,11 +171,11 @@ html,body{background:#0d0906;}
   <div id="seal">༦</div>
   <div id="fade"></div>
 </div>
-<div id="bar" hidden>
-  <button id="pp" type="button" aria-label="Lecture / pause">▶</button>
-  <div id="track" role="slider" tabindex="0" aria-label="Position dans le clip"
-       aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="rail"><div class="fill" style="width:0%"></div></div></div>
-  <div class="tm"><span id="cur">0,0</span> / <span id="tot">0,0</span> s</div>
+<div id="ui" hidden>
+  <button id="play" type="button" aria-label="Lecture / pause">▶</button>
+  <div id="bar" role="slider" tabindex="0" aria-label="Position dans le clip"
+       aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="barfill"></div></div>
+  <div id="tt"><span id="cur">0,0</span> / <span id="tot">0,0</span></div>
 </div>
 
 <script>
@@ -710,9 +709,9 @@ window.__seek=function(t){ render(t); };
 const params=new URLSearchParams(location.search);
 
 if(!params.has('frames')){
-  const bar=$('#bar'), pp=$('#pp'), track=$('#track'), fill=track.querySelector('.fill');
+  const ui=$('#ui'), play=$('#play'), bar=$('#bar'), fill=$('#barfill');
   const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  bar.hidden=false;
+  ui.hidden=false;
   let t=0, playing=!reduce, last=null;
   const fmt=v=>v.toFixed(1).replace('.',',');
   $('#tot').textContent=fmt(T.end);
@@ -720,8 +719,8 @@ if(!params.has('frames')){
     render(t);
     fill.style.width=(t/T.end*100)+'%';
     $('#cur').textContent=fmt(t);
-    track.setAttribute('aria-valuenow',Math.round(t/T.end*100));
-    pp.textContent=playing?'❚❚':'▶';
+    bar.setAttribute('aria-valuenow',Math.round(t/T.end*100));
+    play.textContent=playing?'❚❚':'▶';
   }
   function loop(ts){
     if(last===null)last=ts;
@@ -733,17 +732,17 @@ if(!params.has('frames')){
     last=ts;
     requestAnimationFrame(loop);
   }
-  pp.addEventListener('click',()=>{ playing=!playing; paint(); });
+  play.addEventListener('click',()=>{ playing=!playing; paint(); });
   function scrub(e){
-    const r=track.getBoundingClientRect();
+    const r=bar.getBoundingClientRect();
     t=clamp((e.clientX-r.left)/r.width,0,1)*T.end; paint();
   }
-  track.addEventListener('pointerdown',e=>{ track.setPointerCapture(e.pointerId); playing=false; scrub(e); });
-  track.addEventListener('pointermove',e=>{ if(track.hasPointerCapture(e.pointerId)) scrub(e); });
-  track.addEventListener('keydown',e=>{
+  bar.addEventListener('pointerdown',e=>{ bar.setPointerCapture(e.pointerId); playing=false; scrub(e); });
+  bar.addEventListener('pointermove',e=>{ if(bar.hasPointerCapture(e.pointerId)) scrub(e); });
+  bar.addEventListener('keydown',e=>{
     if(e.key==='ArrowRight'){ t=clamp(t+1,0,T.end); playing=false; paint(); e.preventDefault(); }
     if(e.key==='ArrowLeft'){ t=clamp(t-1,0,T.end); playing=false; paint(); e.preventDefault(); }
-    if(e.key===' '){ playing=!playing; paint(); e.preventDefault(); }
+    if(e.key===' '||e.key==='Enter'){ playing=!playing; paint(); e.preventDefault(); }
   });
   paint();
   requestAnimationFrame(loop);

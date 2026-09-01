@@ -11,6 +11,7 @@
   --nuit:#120E0A; --nuit2:#1E1610;
   --paper:#F7F0DF; --paper2:#EBDFC4; --ink:#2A1D12; --ink2:#6B5540;
   --grenat:#8E2A1F; --saf:#E29A2A; --or:#C9962F; --lapis:#25588B; --turq:#1E9184; --vert:#3B7D4E;
+  --gold:#C9A227;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--nuit);display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden}
@@ -107,6 +108,18 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
 .tr2{font-family:'Gara';font-weight:600;font-size:46px;color:#F7F0DF;margin-top:22px;line-height:1.45}
 .tr2 em{color:var(--saf);font-style:normal}
 .trlab{font-size:14px;letter-spacing:.3em;text-transform:uppercase;color:#7C6647;margin-bottom:8px}
+
+/* ---------- contrôles ---------- */
+#ui{position:fixed;left:0;right:0;bottom:0;padding:14px 22px;display:flex;align-items:center;gap:16px;
+	background:linear-gradient(transparent,rgba(0,0,0,.72));z-index:10;font-family:'Inter',sans-serif}
+#ui button{background:rgba(201,162,39,.16);color:#E4D5A8;border:1px solid rgba(201,162,39,.45);
+	border-radius:999px;padding:8px 20px;font:inherit;font-size:14px;letter-spacing:.05em;cursor:pointer}
+#ui button:hover{background:rgba(201,162,39,.3)}
+#ui button:focus-visible,#bar:focus-visible{outline:2px solid #E4D5A8;outline-offset:3px}
+#bar{flex:1;height:3px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden;cursor:pointer}
+#barfill{height:100%;width:0;background:var(--gold)}
+#tt{color:#8B7C60;font-size:13px;font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+.capture #ui{display:none}
 </style></head><body>
 
 <div class="fit"><div class="frame" id="frame">
@@ -224,6 +237,13 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
   </div>
 </div></div>
 
+<div id="ui">
+	<button id="play">Rejouer</button>
+	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
+	     aria-valuemin="0" aria-valuemax="21.9" aria-valuenow="0"><div id="barfill"></div></div>
+	<div id="tt">0.0 / 21.9</div>
+</div>
+
 <script>
 (function(){
   var sp=document.getElementById('spokes'),s='';
@@ -233,6 +253,8 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
 
   var DUR=21.9;
   var frame=document.getElementById('frame'), card=document.getElementById('card');
+  var curT=0;
+  var barEl=document.getElementById('bar'), barfillEl=document.getElementById('barfill'), ttEl=document.getElementById('tt');
   var nodes=[].slice.call(document.querySelectorAll('[data-in]')).map(function(el){
     return {el:el,t0:+el.dataset.in,d:+(el.dataset.dur||0.55),
             t1:el.dataset.out?+el.dataset.out:null,od:+(el.dataset.outdur||0.45),
@@ -246,6 +268,7 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
   function eo(x){return 1-Math.pow(1-x,3);}
 
   function render(t){
+    curT=t;
     // fond
     document.getElementById('wheel').style.transform='rotate('+(t*3.2)+'deg)';
     document.getElementById('halo').style.opacity=(0.75+0.25*Math.sin(t*0.9)).toFixed(3);
@@ -282,6 +305,12 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
     // fondu final
     var fade=1-c01((t-20.7)/1.0);
     frame.style.opacity=fade.toFixed(3);
+
+    // barre de progression
+    var tDisp=t<0?0:(t>DUR?DUR:t);
+    barfillEl.style.width=(100*tDisp/DUR).toFixed(2)+'%';
+    ttEl.textContent=tDisp.toFixed(1)+' / '+DUR.toFixed(1);
+    barEl.setAttribute('aria-valuenow',tDisp.toFixed(1));
   }
 
   function fit(){
@@ -295,6 +324,31 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
   var t0=null, raf=null;
   function loop(ts){ if(t0===null)t0=ts; var t=(ts-t0)/1000;
     if(t>DUR+0.7){t0=ts;t=0;} render(t); raf=requestAnimationFrame(loop);}
+  function play(){
+    t0=null;
+    render(0);
+    if(!raf) raf=requestAnimationFrame(loop);
+  }
+  function cl01(x){return x<0?0:(x>1?1:x);}
+  function seekTo(t){
+    t=cl01(t/DUR)*DUR;
+    t0=performance.now()-t*1000;
+    render(t);
+    if(!raf) raf=requestAnimationFrame(loop);
+  }
+  document.getElementById('play').addEventListener('click', play);
+  barEl.addEventListener('click', function(e){
+    var r=e.currentTarget.getBoundingClientRect();
+    seekTo(cl01((e.clientX-r.left)/r.width)*DUR);
+  });
+  barEl.addEventListener('keydown', function(e){
+    if(e.key==='ArrowRight'){ seekTo(curT+1); e.preventDefault(); }
+    else if(e.key==='ArrowLeft'){ seekTo(curT-1); e.preventDefault(); }
+    else if(e.key==='Home'){ seekTo(0); e.preventDefault(); }
+    else if(e.key==='End'){ seekTo(DUR); e.preventDefault(); }
+    else if(e.key===' '||e.key==='Enter'){ play(); e.preventDefault(); }
+  });
+
   render(0);
   if(!window.__STATIC) raf=requestAnimationFrame(loop);
 })();

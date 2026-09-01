@@ -23,6 +23,7 @@
 	--rouge:#8f2f24;
 	--or:#a97b12;
 	--or-l:#e0b445;
+	--gold:#C9A227;
 	--indigo:#28468f;
 	--indigo-l:#8fa8e6;
 	--amet:#73337f;
@@ -174,18 +175,18 @@ body{
 
 #noir{position:absolute;inset:0;background:#0b0805;opacity:0;pointer-events:none}
 
-/* commandes (page seule, retirées au rendu vidéo) */
-#cmd{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:center;gap:16px;
-	padding:12px 22px;background:rgba(12,9,6,.86);border-top:1px solid rgba(233,214,175,.14);
-	font-size:14px;color:#c9b795;z-index:20}
-#cmd button{font:inherit;color:#f1e2c2;background:rgba(233,214,175,.10);
-	border:1px solid rgba(233,214,175,.28);border-radius:999px;padding:7px 18px;cursor:pointer}
-#cmd button:hover{background:rgba(233,214,175,.18)}
-#cmd button:focus-visible{outline:2px solid var(--or-l);outline-offset:2px}
-#barre{flex:1;height:4px;background:rgba(233,214,175,.16);border-radius:2px;overflow:hidden}
-#jauge{height:100%;width:0;background:var(--or-l)}
-#tps{font-variant-numeric:tabular-nums;min-width:92px;text-align:right;color:#a08c68}
-@media (prefers-reduced-motion:reduce){#cmd{display:flex}}
+/* ---------- contrôles ---------- */
+#ui{position:fixed;left:0;right:0;bottom:0;padding:14px 22px;display:flex;align-items:center;gap:16px;
+	background:linear-gradient(transparent,rgba(0,0,0,.72));z-index:10;font-family:'Inter',sans-serif}
+#ui button{background:rgba(201,162,39,.16);color:#E4D5A8;border:1px solid rgba(201,162,39,.45);
+	border-radius:999px;padding:8px 20px;font:inherit;font-size:14px;letter-spacing:.05em;cursor:pointer}
+#ui button:hover{background:rgba(201,162,39,.3)}
+#ui button:focus-visible,#bar:focus-visible{outline:2px solid #E4D5A8;outline-offset:3px}
+#bar{flex:1;height:3px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden;cursor:pointer}
+#barfill{height:100%;width:0;background:var(--gold)}
+#tt{color:#8B7C60;font-size:13px;font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+.capture #ui{display:none}
+@media (prefers-reduced-motion:reduce){#ui{display:flex}}
 </style>
 </head>
 <body>
@@ -238,10 +239,11 @@ body{
 	<div id="noir"></div>
 </div></div>
 
-<div id="cmd">
-	<button id="btn" type="button">Rejouer</button>
-	<div id="barre"><div id="jauge"></div></div>
-	<div id="tps">0,0 / 32,6 s</div>
+<div id="ui">
+	<button id="play" type="button">Rejouer</button>
+	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
+	     aria-valuemin="0" aria-valuemax="32.6" aria-valuenow="0"><div id="barfill"></div></div>
+	<div id="tt">0.0 / 32.6</div>
 </div>
 
 <script>
@@ -702,7 +704,7 @@ window.echelle=echelle;
 
 /* ═══════════════ lecture ═══════════════ */
 let t0=null,raf=null,pause=false,tcur=0;
-const jauge=$("#jauge"),tps=$("#tps"),btn=$("#btn");
+const barfill=$("#barfill"),tt=$("#tt"),play=$("#play"),bar=$("#bar");
 function boucle(ts){
 	if(t0===null)t0=ts;
 	tcur=(ts-t0)/1000;
@@ -711,13 +713,43 @@ function boucle(ts){
 	raf=requestAnimationFrame(boucle);
 }
 function maj(){
-	if(!jauge)return;
-	jauge.style.width=(tcur/DUREE*100).toFixed(2)+"%";
-	tps.textContent=tcur.toFixed(1).replace(".",",")+" / "+DUREE.toFixed(1).replace(".",",")+" s";
+	if(!barfill)return;
+	barfill.style.width=(tcur/DUREE*100).toFixed(2)+"%";
+	tt.textContent=tcur.toFixed(1)+" / "+DUREE.toFixed(1);
+	if(bar)bar.setAttribute("aria-valuenow",tcur.toFixed(1));
 }
-function arret(){if(raf)cancelAnimationFrame(raf);raf=null;btn.textContent="Rejouer";}
-function jouer(){arret();t0=null;btn.textContent="En lecture";raf=requestAnimationFrame(boucle);}
-if(btn)btn.addEventListener("click",jouer);
+function arret(){if(raf)cancelAnimationFrame(raf);raf=null;play.textContent="Rejouer";}
+function jouer(){arret();t0=null;play.textContent="En lecture";raf=requestAnimationFrame(boucle);}
+if(play)play.addEventListener("click",jouer);
+
+function cl01(x){return Math.max(0,Math.min(1,x));}
+function seekTo(t){
+	const enCours=!!raf;
+	tcur=Math.max(0,Math.min(DUREE,t));
+	if(raf)cancelAnimationFrame(raf);
+	raf=null;
+	render(tcur);maj();
+	if(enCours){
+		t0=performance.now()-tcur*1000;
+		play.textContent="En lecture";
+		raf=requestAnimationFrame(boucle);
+	}else{
+		t0=null;
+	}
+}
+if(bar){
+	bar.addEventListener("click",e=>{
+		const r=e.currentTarget.getBoundingClientRect();
+		seekTo(cl01((e.clientX-r.left)/r.width)*DUREE);
+	});
+	bar.addEventListener("keydown",e=>{
+		if(e.key==="ArrowRight"){seekTo(tcur+1);e.preventDefault();}
+		else if(e.key==="ArrowLeft"){seekTo(tcur-1);e.preventDefault();}
+		else if(e.key==="Home"){seekTo(0);e.preventDefault();}
+		else if(e.key==="End"){seekTo(DUREE);e.preventDefault();}
+		else if(e.key===" "||e.key==="Enter"){jouer();e.preventDefault();}
+	});
+}
 
 document.fonts.ready.then(()=>{
 	poser();echelle();render(0);
