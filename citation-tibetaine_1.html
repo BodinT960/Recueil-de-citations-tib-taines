@@ -20,6 +20,7 @@
 	--vellum:#f2e7d3;
 	--safran:#e0a24a;
 	--safran-clair:#f2d3a0;
+	--gold:#C9A227;
 	--brume:#8d8271;
 	--brume-2:#6a6157;
 	--jade:#7fb8ae;
@@ -269,33 +270,17 @@ body{
 	text-align:right;white-space:nowrap;
 }
 
-/* ---------- transport (hors capture) ---------- */
-.transport{
-	position:absolute;
-	left:0;right:0;bottom:0;
-	height:3px;
-	background:rgba(242,231,211,.08);
-	cursor:pointer;
-}
-.transport .played{height:100%;width:0;background:var(--safran);transition:none}
-.replay{
-	position:absolute;
-	right:26px;bottom:26px;
-	display:flex;align-items:center;gap:9px;
-	background:rgba(242,231,211,.05);
-	border:1px solid rgba(242,231,211,.16);
-	color:var(--vellum);
-	font-family:"Plex",system-ui,sans-serif;
-	font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
-	padding:10px 16px;border-radius:2px;
-	cursor:pointer;
-	opacity:0;
-	transition:opacity .35s ease,background .2s ease,border-color .2s ease;
-}
-.replay:hover{background:rgba(224,162,74,.14);border-color:rgba(224,162,74,.5)}
-.replay:focus-visible{outline:2px solid var(--safran);outline-offset:3px}
-.replay.on{opacity:1}
-body.capture .transport,body.capture .replay{display:none}
+/* ---------- contrôles (hors capture) ---------- */
+#ui{position:fixed;left:0;right:0;bottom:0;padding:14px 22px;display:flex;align-items:center;gap:16px;
+	background:linear-gradient(transparent,rgba(0,0,0,.72));z-index:10;font-family:"Plex",system-ui,sans-serif}
+#ui button{background:rgba(201,162,39,.16);color:#E4D5A8;border:1px solid rgba(201,162,39,.45);
+	border-radius:999px;padding:8px 20px;font:inherit;font-size:14px;letter-spacing:.05em;cursor:pointer}
+#ui button:hover{background:rgba(201,162,39,.3)}
+#ui button:focus-visible,#bar:focus-visible{outline:2px solid #E4D5A8;outline-offset:3px}
+#bar{flex:1;height:3px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden;cursor:pointer}
+#barfill{height:100%;width:0;background:var(--gold)}
+#tt{color:#8B7C60;font-size:13px;font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+body.capture #ui{display:none}
 </style>
 
 <div id="fit">
@@ -337,9 +322,14 @@ body.capture .transport,body.capture .replay{display:none}
 		</div>
 
 		<div class="vignette"></div>
-		<button class="replay" id="replay" type="button">↺ Rejouer</button>
-		<div class="transport" id="transport"><div class="played" id="played"></div></div>
 	</div>
+</div>
+
+<div id="ui">
+	<button id="play" type="button">Rejouer</button>
+	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
+	     aria-valuemin="0" aria-valuemax="14.8" aria-valuenow="0"><div id="barfill"></div></div>
+	<div id="tt">0.0 / 14.8</div>
 </div>
 
 <script>
@@ -503,55 +493,79 @@ body.capture .transport,body.capture .replay{display:none}
 		return;
 	}
 
-	var played = document.getElementById("played");
-	var replay = document.getElementById("replay");
-	var transport = document.getElementById("transport");
+	var barfill = document.getElementById("barfill");
+	var playBtn = document.getElementById("play");
+	var bar = document.getElementById("bar");
+	var tt = document.getElementById("tt");
 	var t0 = null, raf = null, scrub = null;
+	var barTotal = T.end - 0.55;
+	var cursor = 0;
 
 	var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+	function updateBar(t){
+		barfill.style.width = (100 * t / barTotal) + "%";
+		tt.textContent = t.toFixed(1) + " / " + barTotal.toFixed(1);
+		bar.setAttribute("aria-valuenow", t.toFixed(1));
+	}
 
 	function frame(now){
 		if (t0 === null) t0 = now;
 		var t = (now - t0) / 1000;
-		if (t >= T.end - 0.55){
-			t = T.end - 0.55;
+		if (t >= barTotal){
+			t = barTotal;
 			seek(t);
-			played.style.width = "100%";
-			replay.classList.add("on");
+			cursor = t;
+			updateBar(t);
+			playBtn.classList.add("on");
 			raf = null;
 			return;
 		}
 		seek(t);
-		played.style.width = (100 * t / (T.end - 0.55)) + "%";
+		cursor = t;
+		updateBar(t);
 		raf = requestAnimationFrame(frame);
 	}
 
 	function play(){
 		if (raf) cancelAnimationFrame(raf);
-		replay.classList.remove("on");
+		playBtn.classList.remove("on");
 		t0 = null;
 		scrub = null;
 		raf = requestAnimationFrame(frame);
 	}
 
-	replay.addEventListener("click", play);
+	playBtn.addEventListener("click", play);
 
-	transport.addEventListener("click", function(e){
+	function seekTo(t){
 		if (raf) { cancelAnimationFrame(raf); raf = null; }
-		var r = transport.getBoundingClientRect();
-		var t = clamp01((e.clientX - r.left) / r.width) * (T.end - 0.55);
+		t = Math.max(0, Math.min(barTotal, t));
+		cursor = t;
 		seek(t);
-		played.style.width = (100 * t / (T.end - 0.55)) + "%";
-		replay.classList.add("on");
+		updateBar(t);
+		playBtn.classList.add("on");
+	}
+
+	bar.addEventListener("click", function(e){
+		var r = bar.getBoundingClientRect();
+		seekTo(clamp01((e.clientX - r.left) / r.width) * barTotal);
+	});
+
+	bar.addEventListener("keydown", function(e){
+		if (e.key === "ArrowRight"){ seekTo(cursor + 1); e.preventDefault(); }
+		else if (e.key === "ArrowLeft"){ seekTo(cursor - 1); e.preventDefault(); }
+		else if (e.key === "Home"){ seekTo(0); e.preventDefault(); }
+		else if (e.key === "End"){ seekTo(barTotal); e.preventDefault(); }
+		else if (e.key === " " || e.key === "Enter"){ play(); e.preventDefault(); }
 	});
 
 	if (document.fonts && document.fonts.ready){
 		document.fonts.ready.then(function(){
-			if (reduce){ seek(T.end - 0.6); played.style.width = "100%"; replay.classList.add("on"); }
+			if (reduce){ seek(T.end - 0.6); cursor = barTotal; updateBar(barTotal); playBtn.classList.add("on"); }
 			else play();
 		});
 	} else {
-		if (reduce){ seek(T.end - 0.6); replay.classList.add("on"); } else play();
+		if (reduce){ seek(T.end - 0.6); playBtn.classList.add("on"); } else play();
 	}
 })();
 </script>

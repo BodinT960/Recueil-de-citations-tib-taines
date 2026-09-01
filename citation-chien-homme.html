@@ -13,6 +13,7 @@
 	--indigo:#3a3f96; --amethyste:#6b3f8f; --rose:#a44a6e;
 	--orN:#e0b055; --cinabreN:#e58455; --vertN:#6fbe90;
 	--indigoN:#8f96e8; --amethysteN:#c193e6; --roseN:#e895b4;
+	--gold:#C9A227;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{background:#0b0805;overflow:hidden;height:100%}
@@ -94,6 +95,18 @@ html,body{background:#0b0805;overflow:hidden;height:100%}
 #seal{position:absolute;left:0;right:0;bottom:38px;text-align:center;
 	font-size:30px;color:#c9a86a}
 #fade{position:absolute;inset:0;background:#000}
+
+/* ---------- contrôles ---------- */
+#ui{position:fixed;left:0;right:0;bottom:0;padding:14px 22px;display:flex;align-items:center;gap:16px;
+	background:linear-gradient(transparent,rgba(0,0,0,.72));z-index:10;font-family:'Inter',sans-serif}
+#ui button{background:rgba(201,162,39,.16);color:#E4D5A8;border:1px solid rgba(201,162,39,.45);
+	border-radius:999px;padding:8px 20px;font:inherit;font-size:14px;letter-spacing:.05em;cursor:pointer}
+#ui button:hover{background:rgba(201,162,39,.3)}
+#ui button:focus-visible,#bar:focus-visible{outline:2px solid #E4D5A8;outline-offset:3px}
+#bar{flex:1;height:3px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden;cursor:pointer}
+#barfill{height:100%;width:0;background:var(--gold)}
+#tt{color:#8B7C60;font-size:13px;font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+.capture #ui{display:none}
 </style>
 
 </head><body><div id="wrap"><div id="stage">
@@ -111,6 +124,14 @@ html,body{background:#0b0805;overflow:hidden;height:100%}
 	<svg id="emb" viewBox="0 0 1100 230"></svg>
 	<div id="fade"></div>
 </div></div>
+
+<div id="ui">
+	<button id="play">Rejouer</button>
+	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
+	     aria-valuemin="0" aria-valuemax="39.4" aria-valuenow="0"><div id="barfill"></div></div>
+	<div id="tt">0.0 / 39.4</div>
+</div>
+
 <script>
 "use strict";
 /* ============================================================
@@ -269,6 +290,7 @@ const T = {
 	lit:31.6, litOut:33.6, ret:34.1, retOut:36.1, sens:36.6, seal:37.6,
 	fade:38.4, end:39.4
 };
+const DUR = T.end;
 
 /* =========================== drapeaux =========================== */
 const FLAGCOL = ['#2f5fb0','#efe7d6','#b8352b','#2f7a4c','#d9a71c'];
@@ -562,18 +584,50 @@ function render(t){
 	});
 	/* fondu final */
 	FADE.style.opacity = clamp01((t-T.fade)/(T.end-T.fade));
+
+	/* barre de progression */
+	document.getElementById('barfill').style.width = (100*t/DUR).toFixed(2)+'%';
+	document.getElementById('tt').textContent = t.toFixed(1)+' / '+DUR.toFixed(1);
 }
 
 /* lecture temps réel, sauf en mode capture */
 window.__render = render;
 window.__duration = T.end;
+
+const cl01 = x => x < 0 ? 0 : (x > 1 ? 1 : x);
+let t0 = null, raf = null, cursor = 0;
+function loop(ts){
+	if(t0 === null) t0 = ts;
+	const t = (ts - t0)/1000;
+	render(Math.min(t,DUR));
+	if(t < DUR){ raf = requestAnimationFrame(loop); }
+}
+function play(){
+	if(raf) cancelAnimationFrame(raf);
+	t0 = null; raf = requestAnimationFrame(loop);
+}
+const barEl = document.getElementById('bar');
+function seekTo(t){
+	if(raf) cancelAnimationFrame(raf); raf = null;
+	cursor = cl01(t/DUR)*DUR;
+	render(cursor);
+	barEl.setAttribute('aria-valuenow', cursor.toFixed(1));
+}
+document.getElementById('play').addEventListener('click', play);
+barEl.addEventListener('click', e=>{
+	const r = e.currentTarget.getBoundingClientRect();
+	seekTo(cl01((e.clientX - r.left)/r.width)*DUR);
+});
+barEl.addEventListener('keydown', e=>{
+	if(e.key === 'ArrowRight'){ seekTo(cursor + 1); e.preventDefault(); }
+	else if(e.key === 'ArrowLeft'){ seekTo(cursor - 1); e.preventDefault(); }
+	else if(e.key === 'Home'){ seekTo(0); e.preventDefault(); }
+	else if(e.key === 'End'){ seekTo(DUR); e.preventDefault(); }
+	else if(e.key === ' ' || e.key === 'Enter'){ play(); e.preventDefault(); }
+});
+
 if(!location.search.includes('capture')){
-	const t0 = performance.now();
-	(function loop(){
-		const t = ((performance.now()-t0)/1000) % (T.end+1.5);
-		render(t);
-		requestAnimationFrame(loop);
-	})();
+	play();
 } else {
 	render(0);
 }
