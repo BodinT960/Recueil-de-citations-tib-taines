@@ -240,7 +240,7 @@ body{
 </div></div>
 
 <div id="ui">
-	<button id="play" type="button">Rejouer</button>
+	<button id="play" type="button" aria-label="Lecture / pause">▶</button>
 	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
 	     aria-valuemin="0" aria-valuemax="32.6" aria-valuenow="0"><div id="barfill"></div></div>
 	<div id="tt">0.0 / 32.6</div>
@@ -703,39 +703,40 @@ window.addEventListener("resize",echelle);
 window.echelle=echelle;
 
 /* ═══════════════ lecture ═══════════════ */
-let t0=null,raf=null,pause=false,tcur=0;
+let t0=null,raf=null,playing=false,tcur=0;
 const barfill=$("#barfill"),tt=$("#tt"),play=$("#play"),bar=$("#bar");
 function boucle(ts){
 	if(t0===null)t0=ts;
 	tcur=(ts-t0)/1000;
-	if(tcur>=DUREE){tcur=DUREE;render(tcur);maj();arret();return;}
+	if(tcur>DUREE+0.5){tcur=0;t0=ts;}
 	render(tcur);maj();
-	raf=requestAnimationFrame(boucle);
+	if(playing)raf=requestAnimationFrame(boucle);
 }
 function maj(){
 	if(!barfill)return;
 	barfill.style.width=(tcur/DUREE*100).toFixed(2)+"%";
 	tt.textContent=tcur.toFixed(1)+" / "+DUREE.toFixed(1);
 	if(bar)bar.setAttribute("aria-valuenow",tcur.toFixed(1));
+	if(play)play.textContent=playing?"❚❚":"▶";
 }
-function arret(){if(raf)cancelAnimationFrame(raf);raf=null;play.textContent="Rejouer";}
-function jouer(){arret();t0=null;play.textContent="En lecture";raf=requestAnimationFrame(boucle);}
-if(play)play.addEventListener("click",jouer);
+function arret(){if(raf)cancelAnimationFrame(raf);raf=null;playing=false;maj();}
+function jouer(){
+	if(raf)cancelAnimationFrame(raf);
+	playing=true;
+	t0=performance.now()-tcur*1000;
+	raf=requestAnimationFrame(boucle);
+	maj();
+}
+if(play)play.addEventListener("click",()=>{playing?arret():jouer();});
 
 function cl01(x){return Math.max(0,Math.min(1,x));}
 function seekTo(t){
-	const enCours=!!raf;
 	tcur=Math.max(0,Math.min(DUREE,t));
 	if(raf)cancelAnimationFrame(raf);
 	raf=null;
+	playing=false;
+	t0=null;
 	render(tcur);maj();
-	if(enCours){
-		t0=performance.now()-tcur*1000;
-		play.textContent="En lecture";
-		raf=requestAnimationFrame(boucle);
-	}else{
-		t0=null;
-	}
 }
 if(bar){
 	bar.addEventListener("click",e=>{
@@ -747,7 +748,7 @@ if(bar){
 		else if(e.key==="ArrowLeft"){seekTo(tcur-1);e.preventDefault();}
 		else if(e.key==="Home"){seekTo(0);e.preventDefault();}
 		else if(e.key==="End"){seekTo(DUREE);e.preventDefault();}
-		else if(e.key===" "||e.key==="Enter"){jouer();e.preventDefault();}
+		else if(e.key===" "||e.key==="Enter"){playing?arret():jouer();e.preventDefault();}
 	});
 }
 
