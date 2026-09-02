@@ -77,6 +77,19 @@ body{background:var(--night);color:var(--n-ink);overflow:hidden;
 .gcard p{font-family:"EB Garamond","Noto Serif Tibetan",Georgia,serif;font-size:19px;line-height:1.5;color:var(--n-ink)}
 .gcard .k{color:var(--n-ind)}
 .trow{position:absolute;white-space:nowrap}
+
+/* ---------- contrôles ---------- */
+#ui{position:fixed;left:0;right:0;bottom:0;padding:14px 22px;display:flex;align-items:center;gap:16px;
+	background:linear-gradient(transparent,rgba(0,0,0,.72));z-index:10;font-family:'Inter',sans-serif}
+#ui button{background:rgba(201,162,39,.16);color:#E4D5A8;border:1px solid rgba(201,162,39,.45);
+	border-radius:999px;padding:8px 20px;font:inherit;font-size:14px;letter-spacing:.05em;cursor:pointer}
+#ui button:hover{background:rgba(201,162,39,.3)}
+#ui button:focus-visible,#bar:focus-visible{outline:2px solid #E4D5A8;outline-offset:3px}
+#bar{flex:1;height:3px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden;cursor:pointer}
+#barfill{height:100%;width:0;background:#C9A227}
+#tt{color:#8B7C60;font-size:13px;font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+.capture #ui{display:none}
+.export #ui{display:none}
 </style>
 
 </head>
@@ -93,6 +106,13 @@ body{background:var(--night);color:var(--n-ink);overflow:hidden;
   <div id="panels"></div>
   <div id="veil"></div>
 </div></div>
+
+<div id="ui">
+	<button id="play" type="button" aria-label="Lecture / pause">❚❚</button>
+	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l'animation"
+	     aria-valuemin="0" aria-valuemax="42.0" aria-valuenow="0"><div id="barfill"></div></div>
+	<div id="tt">0.0 / 42.0</div>
+</div>
 
 <script>
 /* ============================ DONNÉES ============================ */
@@ -556,13 +576,36 @@ function fitStage(){
 window.addEventListener('resize',fitStage); fitStage();
 
 /* ============================ LECTURE ============================ */
-let t0=null, running=false;
+const ui=document.getElementById('ui'), playBtn=document.getElementById('play');
+const barEl=document.getElementById('bar'), barfillEl=document.getElementById('barfill'), ttEl=document.getElementById('tt');
+const cl01=x=>Math.max(0,Math.min(1,x));
+let t0=null, playing=false, cur=0;
+function updateUI(){
+  barfillEl.style.width=(100*cur/DUR).toFixed(2)+'%';
+  ttEl.textContent=cur.toFixed(1)+' / '+DUR.toFixed(1);
+  barEl.setAttribute('aria-valuenow',cur.toFixed(1));
+  playBtn.textContent=playing?'❚❚':'▶';
+}
+function seekTo(t){
+  playing=false;
+  cur=Math.max(0,Math.min(DUR,t));
+  t0=performance.now()-cur*1000;
+  render(cur);
+  updateUI();
+}
 function loop(now){
-  if(window.__t!==undefined){render(window.__t);requestAnimationFrame(loop);return;}
-  if(t0===null)t0=now;
-  let t=(now-t0)/1000;
-  if(t>DUR+1.0){t0=now;t=0;}
-  render(t);
+  if(window.__t!==undefined){
+    if(ui.style.display!=='none') ui.style.display='none';
+    render(window.__t);
+    requestAnimationFrame(loop);
+    return;
+  }
+  if(playing){
+    cur=(now-t0)/1000;
+    if(cur>DUR+0.5){ cur=0; t0=now; }
+  }
+  render(cur);
+  updateUI();
   requestAnimationFrame(loop);
 }
 const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -570,16 +613,31 @@ const hint=mk('div',stage,'ui',
   'position:absolute;left:0;bottom:26px;width:1920px;text-align:center;font-size:15px;'+
   'letter-spacing:.14em;text-transform:uppercase;color:#6b5942;z-index:50;cursor:pointer',
   REDUCED?'cliquer pour lancer l’animation':'cliquer pour reprendre au début');
-function start(){ t0=null; window.__t=undefined; running=true; hint.style.opacity='0';
-  requestAnimationFrame(loop); }
-stage.addEventListener('click',()=>{ if(!running) start(); else { t0=null; } });
+function start(){ cur=0; t0=performance.now(); playing=true; hint.style.opacity='0'; updateUI(); }
+stage.addEventListener('click',()=>{ if(!playing) start(); });
+playBtn.addEventListener('click', ()=>{
+  playing=!playing;
+  if(playing) t0=performance.now()-cur*1000;
+  updateUI();
+});
+barEl.addEventListener('click', e=>{
+  const r=e.currentTarget.getBoundingClientRect();
+  seekTo(cl01((e.clientX-r.left)/r.width)*DUR);
+});
+barEl.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight'){ seekTo(cur+1); e.preventDefault(); }
+  else if(e.key==='ArrowLeft'){ seekTo(cur-1); e.preventDefault(); }
+  else if(e.key==='Home'){ seekTo(0); e.preventDefault(); }
+  else if(e.key==='End'){ seekTo(DUR); e.preventDefault(); }
+  else if(e.key===' '||e.key==='Enter'){ playBtn.click(); e.preventDefault(); }
+});
 if(REDUCED){
   /* mouvement réduit : la carte annotée, complète et immobile */
-  render(15.35);
+  playing=false; cur=15.35; render(cur); updateUI();
   hint.style.opacity='1';
 }else{
-  render(0);
-  running=true;
+  cur=0; t0=performance.now(); playing=true;
+  render(0); updateUI();
   hint.style.transition='opacity .6s'; hint.style.opacity='0';
   requestAnimationFrame(loop);
 }
