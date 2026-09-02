@@ -202,7 +202,7 @@ i.t{font-family:'NotoTib',serif;font-style:normal;font-size:1.3em;line-height:1;
 </div></div>
 
 <div id="ui">
-	<button id="play">Rejouer</button>
+	<button id="play" type="button" aria-label="Lecture / pause">▶</button>
 	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
 	     aria-valuemin="0" aria-valuemax="27" aria-valuenow="0"><div id="barfill"></div></div>
 	<div id="tt">0.0 / 27.0</div>
@@ -647,54 +647,54 @@ function fit(){
 }
 window.addEventListener('resize',fit); fit();
 
-let t0 = null, raf = null, playing = false;
-function loop(ts){
-	if(t0 === null) t0 = ts;
-	const t = (ts - t0)/1000;
-	render(Math.min(t,DUR));
-	if(t < DUR){ raf = requestAnimationFrame(loop); }
-	else { playing = false; }
-}
-function play(){
-	if(raf) cancelAnimationFrame(raf);
-	t0 = null; playing = true; raf = requestAnimationFrame(loop);
-}
-let cursor = 0;
-document.getElementById('play').addEventListener('click',play);
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let t = 0, last = null, raf = null, playing = !reduceMotion;
+const playBtn = document.getElementById('play');
 const barEl = document.getElementById('bar');
-function seekTo(t){
-	if(raf) cancelAnimationFrame(raf); raf = null; playing = false;
-	cursor = cl01(t/DUR)*DUR;
-	render(cursor);
-	barEl.setAttribute('aria-valuenow', cursor.toFixed(1));
+function paint(){
+	render(t);
+	barEl.setAttribute('aria-valuenow', t.toFixed(1));
+	playBtn.textContent = playing ? '❚❚' : '▶';
+}
+function loop(ts){
+	if(last === null) last = ts;
+	if(playing){
+		t += (ts - last)/1000;
+		if(t > DUR + 0.5) t = 0;
+		paint();
+	}
+	last = ts;
+	raf = requestAnimationFrame(loop);
+}
+playBtn.addEventListener('click',()=>{ playing = !playing; paint(); });
+function seekTo(nt){
+	t = cl01(nt/DUR)*DUR;
+	playing = false;
+	paint();
 }
 barEl.addEventListener('click',e=>{
 	const r = e.currentTarget.getBoundingClientRect();
 	seekTo(cl01((e.clientX - r.left)/r.width)*DUR);
 });
 barEl.addEventListener('keydown',e=>{
-	if(e.key === 'ArrowRight'){ seekTo(cursor + 1); e.preventDefault(); }
-	else if(e.key === 'ArrowLeft'){ seekTo(cursor - 1); e.preventDefault(); }
+	if(e.key === 'ArrowRight'){ seekTo(t + 1); e.preventDefault(); }
+	else if(e.key === 'ArrowLeft'){ seekTo(t - 1); e.preventDefault(); }
 	else if(e.key === 'Home'){ seekTo(0); e.preventDefault(); }
 	else if(e.key === 'End'){ seekTo(DUR); e.preventDefault(); }
-	else if(e.key === ' ' || e.key === 'Enter'){ play(); e.preventDefault(); }
+	else if(e.key === ' ' || e.key === 'Enter'){ playing = !playing; paint(); e.preventDefault(); }
 });
 
 /* crochet de capture image par image */
-window.__seek = function(t){ if(raf) cancelAnimationFrame(raf); raf = null; render(t); };
+window.__seek = function(nt){ playing = false; t = nt; paint(); };
 window.__dur = DUR;
-window.__ready = document.fonts.ready.then(()=>{ render(0); return true; });
+window.__ready = document.fonts.ready.then(()=>{ paint(); return true; });
 
 document.fonts.ready.then(()=>{
-	render(0);
+	paint();
 	if(document.documentElement.classList.contains('capture')) return;
-	/* mouvement réduit : on présente d’emblée l’état final, la lecture reste
-	   disponible par le bouton « Rejouer » */
-	if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-		seekTo(T.seal + 1.0);
-	} else {
-		setTimeout(play,350);
-	}
+	/* mouvement réduit : la lecture démarre en pause sur la première image ;
+	   elle reste accessible via le bouton lecture/pause */
+	setTimeout(()=>{ last = null; raf = requestAnimationFrame(loop); },350);
 });
 </script>
 

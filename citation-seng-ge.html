@@ -251,7 +251,7 @@ canvas#fond{position:absolute; inset:0; width:1920px; height:1080px;}
 </div>
 
 <div id="ui">
-	<button id="play" aria-label="Lecture ou pause">Pause</button>
+	<button id="play" type="button" aria-label="Lecture / pause">▶</button>
 	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
 	     aria-valuemin="0" aria-valuemax="30.6" aria-valuenow="0"><div id="barfill"></div></div>
 	<div id="tt">0.0 / 30.6</div>
@@ -724,9 +724,11 @@ function updateUI(){
 	$('barfill').style.width = (100*cur/T.end).toFixed(2)+'%';
 	$('tt').textContent = cur.toFixed(1)+' / '+T.end.toFixed(1);
 	barEl.setAttribute('aria-valuenow', cur.toFixed(1));
+	$('play').textContent = playing ? '❚❚' : '▶';
 }
 
 function seekTo(t){
+	playing = false;
 	cur = Math.max(0, Math.min(T.end, t));
 	t0 = performance.now() - cur*1000;
 	render(cur);
@@ -737,20 +739,19 @@ function tick(now){
 	if(window.__manual){ return; }
 	if(playing){
 		cur = (now - t0)/1000;
-		if(cur > T.end){ cur = T.end; playing = false; $('play').textContent = 'Rejouer'; }
+		if(cur > T.end + 0.5){ cur = 0; t0 = now; }
 	}
 	render(cur);
 	updateUI();
 	requestAnimationFrame(tick);
 }
-if(reduce){ playing = false; cur = 9.9; $('play').textContent = 'Lecture'; }
+if(reduce){ playing = false; cur = 9.9; }
 requestAnimationFrame(tick);
 
 $('play').addEventListener('click', ()=>{
-	if(cur >= T.end - .01){ cur = 0; t0 = performance.now(); playing = true; $('play').textContent = 'Pause'; return; }
 	playing = !playing;
 	if(playing) t0 = performance.now() - cur*1000;
-	$('play').textContent = playing ? 'Pause' : 'Lecture';
+	updateUI();
 });
 
 barEl.addEventListener('click', e=>{
