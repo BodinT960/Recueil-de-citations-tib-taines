@@ -367,7 +367,7 @@ CLASH.forEach(r=>{
 
 /* anneaux sur les trois génitifs */
 GENRING.forEach(g=>{
-  const cx=colX(g[1])+CW/2, cy=rowY(g[0])+SYH/2+2;
+  const cx=colX(g[1])+CW/2, cy=rowY(g[0])+SYH/2-19;
   sv('circle',ovRing,{cx:cx,cy:cy,r:38,fill:'none',stroke:'#33487f','stroke-width':1.4});
   const tx=sv('text',ovRing,{x:cx,y:rowY(g[0])+SYH+19,'text-anchor':'middle',
     'font-family':'Inter,sans-serif','font-size':'13',fill:'#33487f'});
