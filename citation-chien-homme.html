@@ -126,7 +126,7 @@ html,body{background:#0b0805;overflow:hidden;height:100%}
 </div></div>
 
 <div id="ui">
-	<button id="play">Rejouer</button>
+	<button id="play" type="button" aria-label="Lecture / pause">▶</button>
 	<div id="bar" tabindex="0" role="slider" aria-label="Position dans l’animation"
 	     aria-valuemin="0" aria-valuemax="39.4" aria-valuenow="0"><div id="barfill"></div></div>
 	<div id="tt">0.0 / 39.4</div>
@@ -595,25 +595,37 @@ window.__render = render;
 window.__duration = T.end;
 
 const cl01 = x => x < 0 ? 0 : (x > 1 ? 1 : x);
-let t0 = null, raf = null, cursor = 0;
-function loop(ts){
-	if(t0 === null) t0 = ts;
-	const t = (ts - t0)/1000;
-	render(Math.min(t,DUR));
-	if(t < DUR){ raf = requestAnimationFrame(loop); }
-}
-function play(){
-	if(raf) cancelAnimationFrame(raf);
-	t0 = null; raf = requestAnimationFrame(loop);
-}
+const playBtn = document.getElementById('play');
 const barEl = document.getElementById('bar');
-function seekTo(t){
-	if(raf) cancelAnimationFrame(raf); raf = null;
-	cursor = cl01(t/DUR)*DUR;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let cursor = 0, playing = !reduceMotion, t0 = null, raf = null;
+
+function frame(){
 	render(cursor);
 	barEl.setAttribute('aria-valuenow', cursor.toFixed(1));
+	playBtn.textContent = playing ? '❚❚' : '▶';
 }
-document.getElementById('play').addEventListener('click', play);
+function loop(ts){
+	if(t0 === null) t0 = ts - cursor*1000;
+	if(playing){
+		cursor = (ts - t0)/1000;
+		if(cursor > DUR + 0.5){ cursor = 0; t0 = ts; }
+	}
+	frame();
+	raf = requestAnimationFrame(loop);
+}
+function togglePlay(){
+	playing = !playing;
+	if(playing) t0 = null;
+	frame();
+}
+function seekTo(t){
+	cursor = cl01(t/DUR)*DUR;
+	playing = false;
+	t0 = null;
+	frame();
+}
+playBtn.addEventListener('click', togglePlay);
 barEl.addEventListener('click', e=>{
 	const r = e.currentTarget.getBoundingClientRect();
 	seekTo(cl01((e.clientX - r.left)/r.width)*DUR);
@@ -623,11 +635,12 @@ barEl.addEventListener('keydown', e=>{
 	else if(e.key === 'ArrowLeft'){ seekTo(cursor - 1); e.preventDefault(); }
 	else if(e.key === 'Home'){ seekTo(0); e.preventDefault(); }
 	else if(e.key === 'End'){ seekTo(DUR); e.preventDefault(); }
-	else if(e.key === ' ' || e.key === 'Enter'){ play(); e.preventDefault(); }
+	else if(e.key === ' ' || e.key === 'Enter'){ togglePlay(); e.preventDefault(); }
 });
 
 if(!location.search.includes('capture')){
-	play();
+	frame();
+	raf = requestAnimationFrame(loop);
 } else {
 	render(0);
 }
