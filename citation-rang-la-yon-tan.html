@@ -144,16 +144,32 @@ tr.hi td.f{color:#c99a2e;}
 
 html,body{background:#0b0805;}
 #wrapui{position:relative;width:100%;max-width:1920px;margin:0 auto;}
-#scaler{position:relative;width:100%;}
+#scaler{position:relative;width:100%;background:#0e0a06;cursor:pointer;}
 #stage{transform-origin:0 0;}
 #ui{display:flex;align-items:center;gap:14px;padding:14px 20px;background:#14100a;
     border-top:1px solid #2e2418;font-family:'Inter',system-ui,sans-serif;color:#c9b48a;font-size:13px;}
 #play{width:42px;height:34px;border:1px solid #4a3c28;border-radius:4px;background:#1d1610;
-      color:#e2b658;font-size:15px;cursor:pointer;line-height:1;}
+      color:#e2b658;font-size:15px;cursor:pointer;line-height:1;flex:none;}
 #play:hover{border-color:#c99a2e;}
 #bar{flex:1;height:8px;border-radius:4px;background:#241c12;cursor:pointer;position:relative;}
 #barfill{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,#8a6a22,#e2b658);width:0;}
-#tt{font-variant-numeric:tabular-nums;letter-spacing:.04em;min-width:96px;text-align:right;}
+#tt{font-variant-numeric:tabular-nums;letter-spacing:.04em;min-width:104px;text-align:right;}
+
+/* Voile de depart : sans lui la page s'ouvre sur un rectangle noir - l'image 0
+   du clip est vide - et rien n'indique qu'il faut appuyer quelque part. */
+#poster{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-end;gap:16px;padding-bottom:9%;background:rgba(11,8,5,.34);
+  font-family:'Inter',system-ui,sans-serif;color:#e8d7ac;text-align:center;}
+#poster.off{display:none;}
+#bigplay{width:96px;height:96px;border-radius:50%;border:2px solid #c99a2e;background:rgba(20,15,9,.82);
+  color:#e2b658;font-size:36px;line-height:1;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;padding-left:8px;box-shadow:0 10px 40px -12px #000;}
+#bigplay:hover{background:#1d1610;border-color:#e2b658;}
+#postertxt{font-size:15px;letter-spacing:.06em;text-shadow:0 2px 10px #000;}
+#msg{display:none;padding:16px 20px;background:#3a1d18;border-top:1px solid #6b3126;
+  font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.6;color:#f0cdc2;}
+#msg b{color:#ffd9cd;}
+@media (max-width:520px){ #bigplay{width:74px;height:74px;font-size:28px;} #postertxt{font-size:13px;} }
 </style>
 
 <div id="wrapui"><div id="scaler"><div id="stage">
@@ -216,12 +232,18 @@ html,body{background:#0b0805;}
   </div>
 
   <div id="fade"></div>
-</div></div>
-<div id="ui">
-  <button id="play">&#9654;</button>
-  <div id="bar"><div id="barfill"></div></div>
-  <div id="tt">0,0 s / 0,0 s</div>
 </div>
+<div id="poster">
+  <button id="bigplay" aria-label="Lire l'animation">&#9654;</button>
+  <div id="postertxt">Lire l&rsquo;animation &middot; 1 min 04</div>
+</div>
+</div>
+<div id="ui">
+  <button id="play" aria-label="Lecture / pause">&#9654;</button>
+  <div id="bar"><div id="barfill"></div></div>
+  <div id="tt">0:00 / 1:04</div>
+</div>
+<div id="msg"></div>
 </div>
 
 <script>
@@ -714,43 +736,87 @@ render(0);
 
 <script>
 (function(){
-  var stage=document.getElementById('stage'), sc=document.getElementById('scaler');
-  function fit(){
-    var w=sc.clientWidth, k=w/1920;
-    stage.style.transform='scale('+k+')';
-    sc.style.height=(1080*k)+'px';
-  }
-  window.addEventListener('resize',fit); fit();
-  setTimeout(fit,60);
+  var PLAY='&#9654;', PAUSE='&#10074;&#10074;', POSTER=7.6;
 
-  var t=0, playing=false, last=null;
-  var play=document.getElementById('play'), bar=document.getElementById('bar'),
-      fill=document.getElementById('barfill'), tt=document.getElementById('tt');
-  function fmt(v){return v.toFixed(1).replace('.',',');}
+  function $(id){ return document.getElementById(id); }
+  var stage=$('stage'), sc=$('scaler'), msg=$('msg');
+
+  function panne(txt){
+    if(!msg) return;
+    msg.style.display='block';
+    msg.innerHTML='<b>L&rsquo;animation n&rsquo;a pas pu d&eacute;marrer.</b> '+txt+
+      ' Le clip existe aussi en vid&eacute;o&nbsp;: le fichier MP4 se lit partout.';
+  }
+
+  /* Le lecteur ne doit jamais rester muet : si le moteur d'animation manque
+     (script tronque au transfert, navigateur qui refuse le script), on le dit. */
+  if(typeof window.render!=='function' || typeof window.DUR!=='number'){
+    panne('Le moteur d&rsquo;animation ne s&rsquo;est pas charg&eacute; &mdash; la page est probablement arriv&eacute;e incompl&egrave;te.');
+    var pf=$('poster'); if(pf) pf.className='off';
+    return;
+  }
+
+  function fit(){
+    try{
+      var w=sc.clientWidth||sc.getBoundingClientRect().width||window.innerWidth;
+      var k=w/1920;
+      stage.style.transform='scale('+k+')';
+      sc.style.height=(1080*k)+'px';
+    }catch(e){}
+  }
+  window.addEventListener('resize',fit);
+  window.addEventListener('orientationchange',fit);
+  if(window.ResizeObserver){ try{ new ResizeObserver(fit).observe(sc); }catch(e){} }
+  fit(); setTimeout(fit,60); setTimeout(fit,400);
+
+  var t=POSTER, playing=false, last=null, demarre=false;
+  var play=$('play'), bar=$('bar'), fill=$('barfill'), tt=$('tt'), poster=$('poster');
+
+  function mmss(v){ var m=Math.floor(v/60), s=Math.floor(v%60);
+    return m+':'+(s<10?'0':'')+s; }
   function draw(){
-    window.render(t);
-    fill.style.width=(100*t/window.DUR)+'%';
-    tt.textContent=fmt(t)+' s / '+fmt(window.DUR)+' s';
+    try{ window.render(t); }
+    catch(e){ playing=false; panne('Erreur pendant le rendu : '+e.message+'.'); return; }
+    if(fill) fill.style.width=(demarre? 100*t/window.DUR : 0)+'%';
+    if(tt) tt.textContent=(demarre? mmss(t) : '0:00')+' / '+mmss(Math.round(window.DUR));
   }
   function loop(ts){
     if(!playing) return;
     if(last===null) last=ts;
     t+=(ts-last)/1000; last=ts;
-    if(t>=window.DUR){t=window.DUR; playing=false; play.innerHTML='&#9654;';}
+    if(t>=window.DUR){ t=window.DUR; playing=false; play.innerHTML=PLAY; }
     draw(); if(playing) requestAnimationFrame(loop);
   }
-  play.onclick=function(){
-    if(t>=window.DUR) t=0;
+  function bascule(){
+    if(!demarre){ demarre=true; t=0; if(poster) poster.className='off'; }
+    else if(t>=window.DUR){ t=0; }
     playing=!playing; last=null;
-    play.innerHTML=playing?'&#10074;&#10074;':'&#9654;';
-    if(playing) requestAnimationFrame(loop);
-  };
-  bar.onclick=function(e){
+    play.innerHTML=playing?PAUSE:PLAY;
+    if(playing) requestAnimationFrame(loop); else draw();
+  }
+  /* trois surfaces de declenchement : le gros bouton, l'image, le petit bouton */
+  var big=$('bigplay');
+  if(big) big.addEventListener('click', function(e){ e.stopPropagation(); bascule(); });
+  sc.addEventListener('click', function(){ bascule(); });
+  play.addEventListener('click', function(e){ e.stopPropagation(); bascule(); });
+  bar.addEventListener('click', function(e){
+    e.stopPropagation();
+    if(!demarre){ demarre=true; if(poster) poster.className='off'; }
     var r=bar.getBoundingClientRect();
     t=Math.max(0,Math.min(window.DUR,(e.clientX-r.left)/r.width*window.DUR));
     draw();
-  };
-  if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){fit();draw();});
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.code==='Space'||e.key===' '){ e.preventDefault(); bascule(); }
+  });
+
+  /* Les polices sont embarquees, mais document.fonts.ready ne repond pas partout :
+     on redessine quand elles arrivent, et de toute facon au bout de 2,5 s. */
+  var redessine=function(){ fit(); draw(); };
+  if(document.fonts && document.fonts.ready && document.fonts.ready.then){
+    try{ document.fonts.ready.then(redessine); }catch(e){}
+  }
+  setTimeout(redessine, 2500);
   draw();
 })();
 </script>
