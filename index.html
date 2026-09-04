@@ -224,14 +224,22 @@
     gap: 0.4rem;
   }
 
-  .points span {
+  /* sélecteur d'ENFANT, et non descendant : sans le « > », la pastille
+     (bordure, arrondi, fond, corps Inter) s'appliquerait aussi au <span>
+     tibétain niché à l'intérieur, qui recevrait sa propre bordure. */
+  .points > span {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3em;
     font-family: "Inter", sans-serif;
     font-size: 0.68rem;
     letter-spacing: 0.03em;
+    line-height: 1.4;
     color: var(--cinabre);
     border: 1px solid var(--cinabre-soft);
     border-radius: 20px;
-    padding: 0.22rem 0.65rem;
+    /* le fond vertical est dicté par l'encre tibétaine, pas par le corps latin */
+    padding: 0.5rem 0.75rem;
   }
 
   footer {
@@ -249,13 +257,10 @@
 
 
   /* Tibétain en ligne dans un texte latin. Trois corrections :
-     — l'agrandir (à corps égal, un glyphe tibétain paraît deux fois plus petit) ;
+     — l'agrandir : à corps égal, un glyphe tibétain paraît deux fois plus petit ;
      — ne jamais l'incliner : Noto Serif Tibetan n'a pas d'italique, et le
        navigateur fabriquerait une oblique qui déforme les empilements ;
-     — le reposer sur la ligne de base latine.
-     Dans les étiquettes, le corps latin est à 0,68 rem : une taille relative
-     ferait retomber le tibétain sous le seuil de lisibilité, d'où le corps absolu.
-     Le sélecteur .points span.tin doit l'emporter sur .points span. */
+     — le reposer sur la ligne de base latine. */
   .tin {
     font-family: "Noto Serif Tibetan", "Jomolhari", serif;
     font-size: 1.34em;
@@ -264,18 +269,16 @@
     vertical-align: -0.06em;
   }
 
-  .points span.tin {
-    font-family: "Noto Serif Tibetan", "Jomolhari", serif;
+  /* Dans les étiquettes, le corps latin est à 0,68 rem : une taille relative
+     ferait retomber le tibétain sous le seuil de lisibilité, d'où le corps
+     absolu. Son encre est haute de 1,7 fois le corps et déséquilibrée vers le
+     haut (ascendante 20 px, descendante 9 px à 17 px) : on la descend d'un
+     cheveu pour que le signe voyelle ne vienne pas toucher le filet. */
+  .points .tin {
     font-size: 17px;
-    display: inline;
-  }
-
-  .points > span {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.3em;
-    line-height: 1.4;
-    padding: 0.26rem 0.7rem;
+    vertical-align: baseline;
+    position: relative;
+    top: 0.22em;
   }
 
   .gloss { line-height: 1.62; }
