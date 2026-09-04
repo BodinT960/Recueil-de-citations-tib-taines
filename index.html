@@ -247,6 +247,39 @@
     margin-bottom: 0.6rem;
   }
 
+
+  /* Tibétain en ligne dans un texte latin. Trois corrections :
+     — l'agrandir (à corps égal, un glyphe tibétain paraît deux fois plus petit) ;
+     — ne jamais l'incliner : Noto Serif Tibetan n'a pas d'italique, et le
+       navigateur fabriquerait une oblique qui déforme les empilements ;
+     — le reposer sur la ligne de base latine.
+     Dans les étiquettes, le corps latin est à 0,68 rem : une taille relative
+     ferait retomber le tibétain sous le seuil de lisibilité, d'où le corps absolu.
+     Le sélecteur .points span.tin doit l'emporter sur .points span. */
+  .tin {
+    font-family: "Noto Serif Tibetan", "Jomolhari", serif;
+    font-size: 1.34em;
+    font-style: normal;
+    line-height: 1;
+    vertical-align: -0.06em;
+  }
+
+  .points span.tin {
+    font-family: "Noto Serif Tibetan", "Jomolhari", serif;
+    font-size: 17px;
+    display: inline;
+  }
+
+  .points > span {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3em;
+    line-height: 1.4;
+    padding: 0.26rem 0.7rem;
+  }
+
+  .gloss { line-height: 1.62; }
+
   @media (max-width: 560px) {
     .wrap { padding: 3.2rem 1.1rem 4rem; }
     .card { padding: 1.4rem 1.3rem; }
@@ -300,7 +333,7 @@
         </div>
         <p class="tib-line tib">བསམ་པ་དཀར་ན་སེམས་ཀྱི་སྨན་ཡིན།</p>
         <p class="gloss">« Si la pensée est pure, elle est le remède de l'esprit. »</p>
-        <div class="points"><span>génitif ཀྱི་</span><span>conditionnel ན་</span><span>copule ཡིན་</span></div>
+        <div class="points"><span>génitif <span class="tin">ཀྱི་</span></span><span>conditionnel <span class="tin">ན་</span></span><span>copule <span class="tin">ཡིན་</span></span></div>
       </a>
     </li>
 
@@ -312,7 +345,7 @@
         </div>
         <p class="tib-line tib">གལ་ཏེ་ཁྱེད་ཀྱིས་མིག་མ་ཕྱེ་ན།</p>
         <p class="gloss">« Si tu n'ouvres pas les yeux, d'autres traceront ta route à ta place. »</p>
-        <div class="points"><span>ergatif ཀྱིས་</span><span>génitif ཀྱི་</span><span>corrélation གལ་ཏེ་ … ན་</span></div>
+        <div class="points"><span>ergatif <span class="tin">ཀྱིས་</span></span><span>génitif <span class="tin">ཀྱི་</span></span><span>corrélation <span class="tin">གལ་ཏེ་</span> … <span class="tin">ན་</span></span></div>
       </a>
     </li>
 
@@ -324,7 +357,7 @@
         </div>
         <p class="tib-line tib">འཁོར་བ་པ་ལ་བདེ་བ་མེད། །མེ་ཡི་ནང་ན་བསིལ་བ་མེད།</p>
         <p class="gloss">« Nul bonheur pour qui tourne dans le saṃsāra, nulle fraîcheur au cœur du feu. »</p>
-        <div class="points"><span>ལ་དོན་ ལ་/ན་</span><span>négation existentielle མེད་</span><span>ན་ locatif ≠ conditionnel</span></div>
+        <div class="points"><span><span class="tin">ལ་དོན་ ལ་</span>/<span class="tin">ན་</span></span><span>négation existentielle <span class="tin">མེད་</span></span><span><span class="tin">ན་</span> locatif ≠ conditionnel</span></div>
       </a>
     </li>
 
@@ -336,7 +369,7 @@
         </div>
         <p class="tib-line tib">གངས་སྡོད་སེང་གེའི་གཡུ་རལ་ངོམ་པ་ལ།</p>
         <p class="gloss">« Le lion des neiges déploie sa crinière de turquoise — inutile que la vermine s'en étonne. »</p>
-        <div class="points"><span>nominalisation</span><span>ergatif ↔ absolutif</span><span>génitif འི་</span></div>
+        <div class="points"><span>nominalisation</span><span>ergatif ↔ absolutif</span><span>génitif <span class="tin">འི་</span></span></div>
       </a>
     </li>
 
@@ -348,7 +381,7 @@
         </div>
         <p class="tib-line tib">བཟང་པོ་ཤོར་ནས་ངན་པ་འཛིན།</p>
         <p class="gloss">« Laisser fuir le bon, retenir le mauvais — l'homme vil est une passoire. »</p>
-        <div class="points"><span>gérondif ནས་</span><span>radicaux verbaux</span><span>deux tours du comparatif</span></div>
+        <div class="points"><span>gérondif <span class="tin">ནས་</span></span><span>radicaux verbaux</span><span>deux tours du comparatif</span></div>
       </a>
     </li>
 
@@ -360,7 +393,7 @@
         </div>
         <p class="tib-line tib">སྡིག་པ་ཅི་ཡང་མི་བྱ་ཞིང་།</p>
         <p class="gloss">« Ne faire aucun mal, accomplir pleinement le bien, dompter complètement son esprit. »</p>
-        <div class="points"><span>particule thématique ནི་</span><span>converb ཅིང་/ཞིང་/ཤིང་</span><span>terminative adverbiale</span></div>
+        <div class="points"><span>particule thématique <span class="tin">ནི་</span></span><span>converb <span class="tin">ཅིང་</span>/<span class="tin">ཞིང་</span>/<span class="tin">ཤིང་</span></span><span>terminative adverbiale</span></div>
       </a>
     </li>
 
@@ -372,7 +405,7 @@
         </div>
         <p class="tib-line tib">ལུས་ཅན་དག་གི་ལས་རྣམས་ནི།</p>
         <p class="gloss">« Les actes des êtres incarnés ne se perdent pas, fût-ce en cent kalpas. »</p>
-        <div class="points"><span>ablatif ལས་</span><span>deux marques du pluriel</span><span>périphrase པར་འགྱུར་</span></div>
+        <div class="points"><span>ablatif <span class="tin">ལས་</span></span><span>deux marques du pluriel</span><span>périphrase <span class="tin">པར་འགྱུར་</span></span></div>
       </a>
     </li>
 
@@ -384,7 +417,7 @@
         </div>
         <p class="tib-line tib">ཁྱི་ལ་ཁ་ཟས་བྱིན་པས་ཀྱང་།</p>
         <p class="gloss">« Un peu de nourriture donnée au chien : il s'approche et vous tient pour un proche. »</p>
-        <div class="points"><span>concessive ཀྱང་</span><span>nominalisation + cas</span><span>loi des finales</span></div>
+        <div class="points"><span>concessive <span class="tin">ཀྱང་</span></span><span>nominalisation + cas</span><span>loi des finales</span></div>
       </a>
     </li>
 
@@ -396,7 +429,7 @@
         </div>
         <p class="tib-line tib">བསྲེག་བཅད་བརྡར་བའི་གསེར་བཞིན་དུ།</p>
         <p class="gloss">« Comme on éprouve l'or en le brûlant, le coupant, le frottant — examinez ma parole, et alors adoptez-la. »</p>
-        <div class="points"><span>génitif འི་/ཡི་</span><span>converbe ལ་</span><span>mètre ≠ syntaxe</span></div>
+        <div class="points"><span>génitif <span class="tin">འི་</span>/<span class="tin">ཡི་</span></span><span>converbe <span class="tin">ལ་</span></span><span>mètre ≠ syntaxe</span></div>
       </a>
     </li>
 
@@ -408,7 +441,7 @@
         </div>
         <p class="tib-line tib">མཁས་པ་ཡོན་ཏན་དཔག་མེད་ཀྱང་།</p>
         <p class="gloss">« Le savant a des qualités sans nombre — et pourtant il recueille chez autrui jusqu'à la moindre. »</p>
-        <div class="points"><span>concessive ཀྱང་ · འང་</span><span>trois adverbes en ལ་དོན་</span><span>agentif ཡིས་</span></div>
+        <div class="points"><span>concessive <span class="tin">ཀྱང་</span> · <span class="tin">འང་</span></span><span>trois adverbes en <span class="tin">ལ་དོན་</span></span><span>agentif <span class="tin">ཡིས་</span></span></div>
       </a>
     </li>
 
@@ -420,7 +453,7 @@
         </div>
         <p class="tib-line tib">མི་ཚེ་རླུང་གསེབ་ཀྱི་མར་མེ།</p>
         <p class="gloss">« La vie d'homme — une lampe à beurre dans le vent ; et puisque l'heure de mourir n'est jamais sûre… »</p>
-        <div class="points"><span>génitif གི་ · ཀྱི་ · གྱི་</span><span>conditionnel ན་</span><span>deux vers sans copule</span></div>
+        <div class="points"><span>génitif <span class="tin">གི་</span> · <span class="tin">ཀྱི་</span> · <span class="tin">གྱི་</span></span><span>conditionnel <span class="tin">ན་</span></span><span>deux vers sans copule</span></div>
       </a>
     </li>
 
@@ -431,8 +464,8 @@
           <span class="meta">1:04</span>
         </div>
         <p class="tib-line tib">རང་ལ་ཡོན་ཏན་ཇི་ཙམ་ཡོད་ན་ཡང་།</p>
-        <p class="gloss">« Quelles que soient tes qualités, ne rabaisse jamais personne ; si attaché sois-tu à tes biens, ne convoite pas ceux des autres. » — འབྲོམ་སྟོན་པ་, première citation attribuée de la série.</p>
-        <div class="points"><span>mètre de neuf syllabes</span><span>nominalisateur པ་ · བ་</span><span>concessive ན་ཡང་</span><span>impératif honorifique མཛོད་</span></div>
+        <p class="gloss">« Quelles que soient tes qualités, ne rabaisse jamais personne ; si attaché sois-tu à tes biens, ne convoite pas ceux des autres. » — <span class="tin">འབྲོམ་སྟོན་པ་</span>, première citation attribuée de la série.</p>
+        <div class="points"><span>mètre de neuf syllabes</span><span>nominalisateur <span class="tin">པ་</span> · <span class="tin">བ་</span></span><span>concessive <span class="tin">ན་ཡང་</span></span><span>impératif honorifique <span class="tin">མཛོད་</span></span></div>
       </a>
     </li>
 
