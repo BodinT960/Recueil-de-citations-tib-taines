@@ -370,4 +370,106 @@ body{background:var(--nuit);display:flex;align-items:center;justify-content:cent
   if(!window.__STATIC) raf=requestAnimationFrame(loop);
 })();
 </script>
+<!-- audio-sync:debut -->
+<script>
+/* Audio de la citation, calé sur la barre de progression de l'animation.
+   L'audio démarre au début de l'animation (quand le texte s'affiche),
+   suit Lecture/Pause, les déplacements dans la barre et les reprises en boucle. */
+(function(){
+	"use strict";
+	var SRC = "Audio Recueil-de-citations-tib-taines/citation-oeil-chemin.wav";
+	var DECALAGE = 0.85;   /* secondes : moment de l'animation où l'audio commence */
+	if (/[?&]capture=1/.test(location.search)) return;
+
+	var audio = new Audio(encodeURI(SRC));
+	audio.preload = "auto";
+	var bloque = false, lastT = null, lastChange = 0, dernierMouvement = 0, aide = null;
+
+	function secondes(s){
+		s = String(s).trim().replace(",", ".");
+		if (s.indexOf(":") >= 0){
+			var p = s.split(":");
+			return parseFloat(p[0]) * 60 + parseFloat(p[1]);
+		}
+		return parseFloat(s);
+	}
+	function total(){
+		var el = document.getElementById("tt");
+		if (el && el.textContent.indexOf("/") >= 0){
+			var v = secondes(el.textContent.split("/")[1]);
+			if (v > 0) return v;
+		}
+		el = document.getElementById("tot");
+		if (el){ var w = secondes(el.textContent); if (w > 0) return w; }
+		var g = window.DURATION || window.DUR || window.TOTAL;
+		return typeof g === "number" && g > 0 ? g : 0;
+	}
+	function remplissage(){
+		var bar = document.getElementById("bar");
+		if (!bar) return null;
+		var els = bar.querySelectorAll("*");
+		for (var i = 0; i < els.length; i++){
+			var w = els[i].style.width;
+			if (w && w.slice(-1) === "%") return parseFloat(w) / 100;
+		}
+		return null;
+	}
+	function montrerAide(){
+		if (aide) return;
+		aide = document.createElement("div");
+		aide.textContent = "🔊 Cliquer pour activer le son";
+		aide.style.cssText = "position:fixed;top:14px;right:18px;z-index:20;padding:7px 16px;border-radius:999px;" +
+			"background:rgba(201,162,39,.2);border:1px solid rgba(201,162,39,.5);color:#E4D5A8;" +
+			"font:14px system-ui,sans-serif;letter-spacing:.04em;cursor:pointer";
+		document.body.appendChild(aide);
+	}
+	function lancer(){
+		var p = audio.play();
+		if (p && p.catch) p.catch(function(e){
+			/* seul un refus du navigateur (lecture auto interdite) compte, pas une pause pendant le chargement */
+			if (e && e.name === "NotAllowedError"){ bloque = true; montrerAide(); }
+		});
+	}
+	function debloquer(){
+		bloque = false;
+		if (aide){ aide.remove(); aide = null; }
+		lastT = null;   /* la prochaine mesure relancera l'audio si l'animation tourne */
+	}
+	document.addEventListener("pointerdown", debloquer, true);
+	document.addEventListener("keydown", debloquer, true);
+
+	setInterval(function(){
+		var f = remplissage(), T = total();
+		if (f === null || !T) return;
+		var t = f * T, pos = t - DECALAGE, now = Date.now();
+		/* avance « au rythme de l'horloge » = lecture ; sinon c'est un déplacement dans la barre */
+		var avance = lastT !== null && t > lastT && (t - lastT) <= (now - lastChange) / 1000 * 1.3 + 0.1;
+		var saut = lastT !== null && !avance && Math.abs(t - lastT) > 0.05;
+		if (lastT === null || t !== lastT) lastChange = now;
+		lastT = t;
+		var dansAudio = pos >= 0 && (!audio.duration || pos < audio.duration);
+
+		if (avance){
+			dernierMouvement = now;
+			if (!dansAudio){
+				/* avant le début : silence ; après la fin : on laisse l'audio se terminer */
+				if (pos < 0 && !audio.paused) audio.pause();
+				return;
+			}
+			if (audio.paused){
+				if (bloque) return;
+				audio.currentTime = pos;
+				lancer();
+			} else if (Math.abs(audio.currentTime - pos) > 0.4){
+				audio.currentTime = pos;
+			}
+		} else {
+			if (saut && dansAudio) audio.currentTime = pos;
+			/* barre immobile depuis un moment : l'animation est en pause */
+			if (now - dernierMouvement > 400 && !audio.paused) audio.pause();
+		}
+	}, 100);
+})();
+</script>
+<!-- audio-sync:fin -->
 </body></html>
