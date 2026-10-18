@@ -809,4 +809,77 @@ setTimeout(bootOnce, 2500);
 <script>window.addEventListener("load",function(){setTimeout(function(){if(typeof window.render!=="function"||!window.DURATION){var e=document.getElementById("err"),v=document.getElementById("veil");if(e)e.style.display="block";if(v)v.style.display="none";}},300);});</script>
 
 
+<!-- audio-sync:debut -->
+<script>
+/* Audio de la citation : l'animation se lance à l'ouverture de la page et l'audio
+   démarre pile à l'apparition de la première syllabe ཤ་ (T.syll0 = 1,4 s) ; le « sh »
+   de ཤ་ commence à 0,05 s dans le fichier, d'où le décalage de 1,35 s. Suit Lecture/Pause, la barre et la boucle. */
+(function(){
+	"use strict";
+	var SRC = "Audio Recueil-de-citations-tib-taines/citation-sha-zhim-po.wav";
+	var DECALAGE = 1.35;  /* secondes : T.syll0 (1,4) − attaque de ཤ་ dans le wav (0,05) */
+	if (/[?&]capture=1/.test(location.search)) return;
+
+	var audio = new Audio(encodeURI(SRC));
+	audio.preload = "auto";
+	var actif = false, debloque = false;
+
+	function demarrerAnimation(){ actif = true; window.__ctl.start(); }
+
+	/* lecture automatique autorisée ? sinon on garde le voile « Lire » et l'animation
+	   attend le clic, pour que son et première syllabe restent ensemble */
+	function sonder(){
+		if (navigator.getAutoplayPolicy){
+			if (navigator.getAutoplayPolicy(audio) === "allowed"){ debloque = true; demarrerAnimation(); }
+			else actif = true;
+			return;
+		}
+		audio.volume = 0;
+		var p = audio.play();
+		function ok(){ audio.pause(); audio.currentTime = 0; audio.volume = 1; debloque = true; demarrerAnimation(); }
+		function ko(){ audio.pause(); audio.currentTime = 0; audio.volume = 1; actif = true; }
+		if (p && p.then) p.then(ok, ko); else ok();
+	}
+	/* un clic ou une touche autorise le son pour la suite */
+	function geste(){
+		if (debloque) return;
+		debloque = true;
+		if (!audio.paused) return;
+		audio.volume = 0;
+		var p = audio.play();
+		var fin = function(){ if (audio.volume === 0){ audio.pause(); audio.volume = 1; } };
+		if (p && p.then) p.then(fin, function(){ audio.volume = 1; }); else fin();
+	}
+	document.addEventListener("pointerdown", geste, true);
+	document.addEventListener("keydown", geste, true);
+
+	function boucle(){
+		requestAnimationFrame(boucle);
+		var c = window.__ctl;
+		if (!actif || !c) return;
+		var pos = c.cur - DECALAGE;
+		var dansAudio = pos >= 0 && (!audio.duration || pos < audio.duration);
+		if (c.playing && dansAudio){
+			if (audio.paused){
+				if (!debloque) return;
+				audio.volume = 1;
+				audio.currentTime = pos;
+				var p = audio.play();
+				if (p && p.catch) p.catch(function(){});
+			} else if (Math.abs(audio.currentTime - pos) > 0.12){
+				audio.currentTime = pos;   /* déplacement dans la barre ou dérive */
+			}
+		} else if (!audio.paused && audio.volume !== 0){
+			audio.pause();
+		}
+	}
+	requestAnimationFrame(boucle);
+
+	(function attendre(){
+		if (window.__ready && window.__ctl) sonder();
+		else setTimeout(attendre, 50);
+	})();
+})();
+</script>
+<!-- audio-sync:fin -->
 </body></html>
