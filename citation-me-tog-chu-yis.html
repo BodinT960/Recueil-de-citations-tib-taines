@@ -852,4 +852,75 @@ setTimeout(bootOnce, 2500);
 
 
 
+<!-- audio-sync:debut -->
+<script>
+/* Audio de la citation, calé image par image sur l'horloge de l'animation (window.__ctl.cur).
+   La voix commence à 0,02 s dans le wav : avec DECALAGE = T.syll0 (1,4 s), elle part
+   au moment où la première syllabe, མེ་, apparaît. Suit Lecture/Pause, la barre et la boucle. */
+(function(){
+	"use strict";
+	var SRC = "Audio Recueil-de-citations-tib-taines/citation-me-tog-chu-yis.wav";
+	var DECALAGE = 1.4;   /* secondes : moment de l'animation où l'audio commence (= T.syll0) */
+	if (/[?&]capture=1/.test(location.search)) return;
+
+	var audio = new Audio(encodeURI(SRC));
+	audio.preload = "auto";
+	try { audio.load(); } catch(e){}
+	var bloque = false, enCours = false, lastT = null, aide = null;
+
+	function montrerAide(){
+		if (aide) return;
+		aide = document.createElement("div");
+		aide.textContent = "🔊 Cliquer pour activer le son";
+		aide.style.cssText = "position:fixed;top:14px;right:18px;z-index:20;padding:7px 16px;border-radius:999px;" +
+			"background:rgba(201,162,39,.2);border:1px solid rgba(201,162,39,.5);color:#E4D5A8;" +
+			"font:14px system-ui,sans-serif;letter-spacing:.04em;cursor:pointer";
+		document.body.appendChild(aide);
+	}
+	function lancer(pos){
+		audio.currentTime = pos;
+		enCours = true;
+		var p = audio.play();
+		if (p && p.then) p.then(function(){ enCours = false; }, function(e){
+			enCours = false;
+			if (e && e.name === "NotAllowedError"){ bloque = true; montrerAide(); }
+		});
+		else enCours = false;
+	}
+	function debloquer(){
+		bloque = false;
+		if (aide){ aide.remove(); aide = null; }
+	}
+	document.addEventListener("pointerdown", debloquer, true);
+	document.addEventListener("keydown", debloquer, true);
+
+	function tick(){
+		requestAnimationFrame(tick);
+		var c = window.__ctl;
+		if (!c || !window.__started) return;
+		var t = c.cur, pos = t - DECALAGE;
+		var saut = lastT !== null && (t < lastT || t - lastT > 0.25);   /* boucle ou déplacement dans la barre */
+		lastT = t;
+		var dansAudio = pos >= 0 && (!audio.duration || pos < audio.duration);
+
+		if (!c.playing || window.__frozen){
+			if (!audio.paused) audio.pause();
+			if (saut && dansAudio) audio.currentTime = pos;
+			return;
+		}
+		if (!dansAudio){
+			/* avant le début : silence ; après la fin : on laisse l'audio se terminer */
+			if (pos < 0 && !audio.paused) audio.pause();
+			return;
+		}
+		if (audio.paused){
+			if (!bloque && !enCours) lancer(pos);
+		} else if (!enCours && (saut || Math.abs(audio.currentTime - pos) > 0.12)){
+			audio.currentTime = pos;
+		}
+	}
+	requestAnimationFrame(tick);
+})();
+</script>
+<!-- audio-sync:fin -->
 </body></html>
