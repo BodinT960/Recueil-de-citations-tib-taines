@@ -839,3 +839,63 @@ setTimeout(bootOnce, 2500);
 
 
 
+<!-- audio-sync:debut -->
+<script>
+/* Audio de la citation, calé sur l'horloge de l'animation (window.__ctl).
+   La voix entre (0,56 s dans le wav) au moment où la première syllabe apparaît (T.syll0 = 1,4 s) ;
+   suit Lecture/Pause, les déplacements dans la barre et les reprises en boucle. */
+(function(){
+	"use strict";
+	var SRC = "Audio Recueil-de-citations-tib-taines/citation-skya-ka.wav";
+	var DECALAGE = 1.4 - 0.56;   /* secondes : moment de l'animation où le wav commence */
+	if (/[?&]capture=1/.test(location.search)) return;
+
+	var audio = new Audio(encodeURI(SRC));
+	audio.preload = "auto";
+	audio.load();
+	var bloque = false, aide = null;
+
+	function montrerAide(){
+		if (aide) return;
+		aide = document.createElement("div");
+		aide.textContent = "🔊 Cliquer pour activer le son";
+		aide.style.cssText = "position:fixed;top:14px;right:18px;z-index:50;padding:7px 16px;border-radius:999px;" +
+			"background:rgba(201,162,39,.2);border:1px solid rgba(201,162,39,.5);color:#E4D5A8;" +
+			"font:14px system-ui,sans-serif;letter-spacing:.04em;cursor:pointer";
+		document.body.appendChild(aide);
+	}
+	function lancer(){
+		var p = audio.play();
+		if (p && p.catch) p.catch(function(e){
+			if (e && e.name === "NotAllowedError"){ bloque = true; montrerAide(); }
+		});
+	}
+	function debloquer(){
+		bloque = false;
+		if (aide){ aide.remove(); aide = null; }
+	}
+	document.addEventListener("pointerdown", debloquer, true);
+	document.addEventListener("keydown", debloquer, true);
+
+	function suivre(){
+		requestAnimationFrame(suivre);
+		var c = window.__ctl;
+		if (!c || !window.__started) return;
+		var pos = c.cur - DECALAGE;
+		var dansAudio = pos >= 0 && (!audio.duration || pos < audio.duration);
+		if (c.playing && dansAudio){
+			if (audio.paused){
+				if (bloque) return;
+				audio.currentTime = pos;
+				lancer();
+			} else if (Math.abs(audio.currentTime - pos) > 0.25){
+				audio.currentTime = pos;   /* déplacement dans la barre ou dérive */
+			}
+		} else if (!audio.paused && (!c.playing || pos < 0)){
+			audio.pause();   /* pause, retour avant le début ou reprise en boucle */
+		}
+	}
+	requestAnimationFrame(suivre);
+})();
+</script>
+<!-- audio-sync:fin -->
