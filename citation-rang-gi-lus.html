@@ -906,4 +906,67 @@ setTimeout(bootOnce, 2500);
 </script>
 
 
+<!-- audio-sync:debut -->
+<script>
+/* Audio de la citation, calé image par image sur l'horloge de l'animation (window.__ctl).
+   La voix commence dès 0 s dans le WAV : elle part exactement quand la première
+   syllabe commence à apparaître (T.syll0 = 1.4 s). Suit Lecture/Pause, la barre,
+   les flèches et la reprise en boucle. */
+(function(){
+	"use strict";
+	var SRC = "Audio Recueil-de-citations-tib-taines/citation-rang-gi-lus.wav";
+	var DECALAGE = 1.4;   /* = T.syll0 : apparition de la première syllabe */
+	var TOLERANCE = 0.08; /* écart (s) au-delà duquel on recale l'audio */
+	if (/[?&]capture=1/.test(location.search)) return;
+
+	var audio = new Audio(encodeURI(SRC));
+	audio.preload = "auto";
+	audio.load();
+	var deverrouille = false, lancement = false, depuis = 0;
+
+	/* Au premier geste (clic sur le voile, espace…), on « déverrouille » l'audio
+	   pour que le départ à 1.4 s soit immédiat, sans latence de décodage. */
+	function deverrouiller(){
+		if (deverrouille) return;
+		deverrouille = true;
+		var ctl = window.__ctl;
+		if (ctl && ctl.playing && ctl.cur >= DECALAGE) return; /* la boucle s'en charge */
+		audio.muted = true;
+		var p = audio.play();
+		var fin = function(){ if (!lancement){ audio.pause(); audio.currentTime = 0; } audio.muted = false; };
+		if (p && p.then) p.then(fin, function(){ audio.muted = false; deverrouille = false; });
+		else fin();
+	}
+	document.addEventListener("pointerdown", deverrouiller, true);
+	document.addEventListener("keydown", deverrouiller, true);
+
+	function boucle(){
+		var ctl = window.__ctl;
+		if (ctl && window.__started){
+			var pos = ctl.cur - DECALAGE;
+			var dur = audio.duration || Infinity;
+			if (ctl.playing && pos >= 0 && pos < dur){
+				if (audio.paused){
+					lancement = true;
+					audio.muted = false;
+					audio.currentTime = pos;
+					depuis = performance.now();
+					var p = audio.play();
+					if (p && p.catch) p.catch(function(){});
+				} else if (performance.now() - depuis > 300 && !audio.seeking &&
+				           Math.abs(audio.currentTime - pos) > TOLERANCE){
+					depuis = performance.now();
+					audio.currentTime = pos;   /* clic dans la barre, flèches, dérive */
+				}
+			} else if (!audio.paused && (!ctl.playing || pos < 0)){
+				audio.pause();                 /* pause, ou retour avant la 1re syllabe (boucle) */
+				lancement = false;
+			}
+		}
+		requestAnimationFrame(boucle);
+	}
+	requestAnimationFrame(boucle);
+})();
+</script>
+<!-- audio-sync:fin -->
 </body></html>
