@@ -836,6 +836,66 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(bootOnce);
 window.addEventListener('load', bootOnce);
 setTimeout(bootOnce, 2500);
 </script>
+<!-- audio-sync:debut -->
+<script>
+/* Audio de la citation : la voix commence exactement quand la première syllabe (མི་, T.syll0)
+   apparaît. Suit Lecture/Pause, les déplacements dans la barre, les flèches et la boucle. */
+(function(){
+	"use strict";
+	var SRC = "Audio Recueil-de-citations-tib-taines/citation-mi-skyon-bshad-dgos.wav";
+	var VOIX = 0.02;                      /* s : silence en tête du WAV avant la voix */
+	var DECALAGE = T.syll0 - VOIX;        /* s : moment de l'animation où le WAV démarre */
+	if (/[?&]capture=1/.test(location.search)) return;
+
+	var audio = new Audio(encodeURI(SRC));
+	audio.preload = "auto";
+	var bloque = false, aide = null, lastCur = null;
+
+	function montrerAide(){
+		if (aide) return;
+		aide = document.createElement("div");
+		aide.textContent = "🔊 Cliquer pour activer le son";
+		aide.style.cssText = "position:fixed;top:14px;right:18px;z-index:70;padding:7px 16px;border-radius:999px;" +
+			"background:rgba(201,162,39,.2);border:1px solid rgba(201,162,39,.5);color:#E4D5A8;" +
+			"font:14px system-ui,sans-serif;letter-spacing:.04em;cursor:pointer";
+		document.body.appendChild(aide);
+	}
+	function lancer(pos){
+		audio.currentTime = pos;
+		var p = audio.play();
+		if (p && p.catch) p.catch(function(e){
+			if (e && e.name === "NotAllowedError"){ bloque = true; montrerAide(); }
+		});
+	}
+	function debloquer(){ bloque = false; if (aide){ aide.remove(); aide = null; } }
+	document.addEventListener("pointerdown", debloquer, true);
+	document.addEventListener("keydown", debloquer, true);
+
+	function tick(){
+		requestAnimationFrame(tick);
+		var ctl = window.__ctl;
+		if (!ctl || !window.__started) return;
+		var cur = ctl.cur, pos = cur - DECALAGE;
+		var saut = lastCur !== null && (cur < lastCur || cur - lastCur > 0.5);
+		lastCur = cur;
+		var dansAudio = pos >= 0 && (!audio.duration || pos < audio.duration);
+
+		if (!ctl.playing){ if (!audio.paused) audio.pause(); return; }
+		if (!dansAudio){
+			/* avant la première syllabe : silence ; après : on laisse finir, sauf retour en arrière */
+			if (!audio.paused && (pos < 0 || saut)) audio.pause();
+			return;
+		}
+		if (audio.paused){
+			if (!bloque) lancer(pos);
+		} else if (saut || Math.abs(audio.currentTime - pos) > 0.15){
+			audio.currentTime = pos;
+		}
+	}
+	requestAnimationFrame(tick);
+})();
+</script>
+<!-- audio-sync:fin -->
 </body>
 </html>
 
