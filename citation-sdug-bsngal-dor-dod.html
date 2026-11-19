@@ -855,103 +855,83 @@ setTimeout(bootOnce, 2500);
 </script>
 <!-- audio-sync:debut -->
 <script>
-/* Audio de la citation, calé sur la barre de progression de l'animation.
-   L'audio démarre au début de l'animation (quand le texte s'affiche),
-   suit Lecture/Pause, les déplacements dans la barre et les reprises en boucle. */
+/* Audio de la citation, calé image par image sur l'horloge de l'animation (window.__ctl).
+   La voix de la première syllabe (སྡུག་, voyelle à 0,12 s dans le WAV) tombe à 1,50 s,
+   au milieu du fondu d'apparition de la première case (T.syll0 = 1,40 → 1,62 s).
+   Suit Lecture/Pause, les déplacements dans la barre et les reprises en boucle. */
 (function(){
 	"use strict";
 	var SRC = "Audio Recueil-de-citations-tib-taines/citation-sdug-bsngal-dor-dod.wav";
-	var DECALAGE = 1.5;     /* secondes : moment de l'animation où l'audio commence */
+	var VOIX = 0.12;                  /* s : attaque de la voix dans le WAV */
+	var APPARITION = 1.50;            /* s : moment de l'animation où la voix doit sonner */
+	var DECALAGE = APPARITION - VOIX; /* s : moment de l'animation où le WAV commence (1,38) */
+	var TOLERANCE = 0.12;             /* s : écart toléré avant recalage */
 	if (/[?&]capture=1/.test(location.search)) return;
 
 	var audio = new Audio(encodeURI(SRC));
 	audio.preload = "auto";
-	var bloque = false, lastT = null, lastChange = 0, dernierMouvement = 0, aide = null;
+	audio.load();
+	var bloque = false, aide = null, prec = null, demarre = false;
 
-	function secondes(s){
-		s = String(s).trim().replace(",", ".");
-		if (s.indexOf(":") >= 0){
-			var p = s.split(":");
-			return parseFloat(p[0]) * 60 + parseFloat(p[1]);
-		}
-		return parseFloat(s);
-	}
-	function total(){
-		var el = document.getElementById("tt");
-		if (el && el.textContent.indexOf("/") >= 0){
-			var v = secondes(el.textContent.split("/")[1]);
-			if (v > 0) return v;
-		}
-		el = document.getElementById("tot");
-		if (el){ var w = secondes(el.textContent); if (w > 0) return w; }
-		var g = window.DURATION || window.DUR || window.TOTAL;
-		return typeof g === "number" && g > 0 ? g : 0;
-	}
-	function remplissage(){
-		var bar = document.getElementById("bar");
-		if (!bar) return null;
-		var els = bar.querySelectorAll("*");
-		for (var i = 0; i < els.length; i++){
-			var w = els[i].style.width;
-			if (w && w.slice(-1) === "%") return parseFloat(w) / 100;
-		}
-		return null;
-	}
 	function montrerAide(){
 		if (aide) return;
 		aide = document.createElement("div");
 		aide.textContent = "🔊 Cliquer pour activer le son";
-		aide.style.cssText = "position:fixed;top:14px;right:18px;z-index:20;padding:7px 16px;border-radius:999px;" +
+		aide.style.cssText = "position:fixed;top:14px;right:18px;z-index:70;padding:7px 16px;border-radius:999px;" +
 			"background:rgba(201,162,39,.2);border:1px solid rgba(201,162,39,.5);color:#E4D5A8;" +
 			"font:14px system-ui,sans-serif;letter-spacing:.04em;cursor:pointer";
 		document.body.appendChild(aide);
 	}
-	function lancer(){
-		var p = audio.play();
-		if (p && p.catch) p.catch(function(e){
-			/* seul un refus du navigateur (lecture auto interdite) compte, pas une pause pendant le chargement */
-			if (e && e.name === "NotAllowedError"){ bloque = true; montrerAide(); }
-		});
-	}
 	function debloquer(){
 		bloque = false;
 		if (aide){ aide.remove(); aide = null; }
-		lastT = null;   /* la prochaine mesure relancera l'audio si l'animation tourne */
 	}
 	document.addEventListener("pointerdown", debloquer, true);
 	document.addEventListener("keydown", debloquer, true);
 
-	setInterval(function(){
-		var f = remplissage(), T = total();
-		if (f === null || !T) return;
-		var t = f * T, pos = t - DECALAGE, now = Date.now();
-		/* avance « au rythme de l'horloge » = lecture ; sinon c'est un déplacement dans la barre */
-		var avance = lastT !== null && t > lastT && (t - lastT) <= (now - lastChange) / 1000 * 1.3 + 0.1;
-		var saut = lastT !== null && !avance && Math.abs(t - lastT) > 0.05;
-		if (lastT === null || t !== lastT) lastChange = now;
-		lastT = t;
-		var dansAudio = pos >= 0 && (!audio.duration || pos < audio.duration);
+	function position(){ return window.__ctl ? window.__ctl.cur - DECALAGE : -1; }
+	function recaler(){
+		var pos = position();
+		if (pos >= 0 && (!audio.duration || pos < audio.duration)) audio.currentTime = pos;
+	}
+	/* une fois le son réellement parti, on corrige la latence de démarrage */
+	audio.addEventListener("playing", function(){ demarre = true; recaler(); });
+	audio.addEventListener("pause", function(){ demarre = false; });
 
-		if (avance){
-			dernierMouvement = now;
-			if (!dansAudio){
-				/* avant le début : silence ; après la fin : on laisse l'audio se terminer */
-				if (pos < 0 && !audio.paused) audio.pause();
-				return;
-			}
-			if (audio.paused){
-				if (bloque) return;
-				audio.currentTime = pos;
-				lancer();
-			} else if (Math.abs(audio.currentTime - pos) > 0.4){
-				audio.currentTime = pos;
-			}
-		} else {
-			if (saut && dansAudio) audio.currentTime = pos;
-			/* barre immobile depuis un moment : l'animation est en pause */
-			if (now - dernierMouvement > 400 && !audio.paused) audio.pause();
+	function lancer(pos){
+		audio.currentTime = pos;
+		var p = audio.play();
+		if (p && p.catch) p.catch(function(e){
+			if (e && e.name === "NotAllowedError"){ bloque = true; montrerAide(); }
+		});
+	}
+
+	function tic(){
+		requestAnimationFrame(tic);
+		var ctl = window.__ctl;
+		if (!ctl) return;
+		var cur = ctl.cur, pos = cur - DECALAGE;
+		var enLecture = ctl.playing && !window.__frozen;
+		var dansAudio = pos >= 0 && (!audio.duration || pos < audio.duration);
+		var saut = prec !== null && (cur < prec - 0.05 || cur > prec + 0.5);   /* barre, flèches, boucle */
+		prec = cur;
+
+		if (!enLecture){
+			if (!audio.paused) audio.pause();
+			return;
 		}
-	}, 100);
+		if (!dansAudio){
+			/* avant le début ou après un saut hors de la voix : silence ; fin naturelle : on laisse finir */
+			if (!audio.paused && (pos < 0 || saut)) audio.pause();
+			return;
+		}
+		if (audio.paused){
+			if (!bloque) lancer(pos);
+		} else if (demarre && (saut || Math.abs(audio.currentTime - pos) > TOLERANCE)){
+			audio.currentTime = pos;
+		}
+	}
+	requestAnimationFrame(tic);
 })();
 </script>
 <!-- audio-sync:fin -->
